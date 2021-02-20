@@ -1,0 +1,4 @@
+
+public class VictimCacheForL1 {
+
+}
