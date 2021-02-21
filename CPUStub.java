@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 
 public class CPUStub {
 
@@ -9,13 +10,18 @@ public class CPUStub {
 	
 	
 	//Get data from I/O
-	public static void loadFileInput() {
+	public static ArrayList<String> loadFileInput() {
 		
 		//CPU Read Instructions
 			//support 2 - 8 blocked processor instructions
 		//CPU Write Instructions
 			//support 2 - 8 blocked processor instructions
 		//Address
+		ArrayList<String> input = new ArrayList<String>();
+		input.add("CPURead A 4");//first part is instruction, second part is location(memory address), third part is size(number of bytes)
+		input.add("CPURead A 4");
+		
+		return input;
 		
 	}//end of loadFileInput
 	
@@ -25,6 +31,7 @@ public class CPUStub {
 		//stream indicating the messages that were executed by the different units
 		//value returned
 		//write to external file (ask prof about this)
+		//same format at input but what we receive from memory hierarchy
 		
 	}//sendOutputResults
 	

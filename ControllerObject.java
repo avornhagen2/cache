@@ -34,7 +34,7 @@ public class ControllerObject {
 	}
 
 
-	public boolean isValid() {
+	public boolean getValid() {
 		return Valid;
 	}
 
@@ -42,6 +42,8 @@ public class ControllerObject {
 	public void setValid(boolean valid) {
 		Valid = valid;
 	}
+
+
 	
 	 
 	

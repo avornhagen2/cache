@@ -1,6 +1,4 @@
-
-
-
+import java.util.ArrayList;
 
 /***************************************************
 * Program Title: CSCI 8150 Advanced Computer Architecture Project *
@@ -18,8 +16,13 @@ public class MemoryHierarchyDriver {
 		String[] DRAM = null;
 		
 		CPUStub cpu = new CPUStub();
+		L1CacheController L1C = new L1CacheController();
 		
-		cpu.cpuStubMessage();
+		ArrayList<String> inputs = new ArrayList<String>();
+		
+		inputs = cpu.loadFileInput();
+		
+		L1C.readFromCPU();
 		
 	}//end of main
 	
