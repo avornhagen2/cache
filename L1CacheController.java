@@ -1,10 +1,11 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 
 public class L1CacheController {
 
-	
+	//we are going to be using FIFO for replacing data
 	public ControllerObject Address;
 	final public static int setSize = 4;
 	final public int INDEX = 6;
@@ -12,6 +13,7 @@ public class L1CacheController {
 	final public int tag = 6;
 	static ControllerObject L1C[][] = new ControllerObject[sets][setSize];
 	static L1Data L1D[][] = new L1Data[sets][setSize];
+	static int[] fifoCounter = new int[sets];
 	
 	
 	//OFFSET = log2(width of block/smallest number of bytes accessed) = log2(32b/1b) = 5
@@ -55,30 +57,65 @@ public class L1CacheController {
 		
 		//request a line from L1D
 		ArrayList<ControllerObject> temp = new ArrayList<ControllerObject>();
-		boolean hit = false;
+		//ControllerObject temp;
+		States states;
+		
+		//Arrays.fill(fifoCounter, 0);
+		
 //		L1Data[][] L1D = new L1Data();
 		//LineObject line = new LineObject();
 		
 		for(int i=0; i < L1C[index].length;i++) {
-			if( L1C[index][i].getValid() == true)
+			if(L1C[index][i].getValid() == true)
 			{
 				//store objects in L1D
 				temp.add(L1C[index][i]);
-				hit = tag == L1C[index][i].getTag();
 				
+				
+				if(tag == L1C[index][i].getTag())
+				{
+					//check if it is a hit
+					states = States.HIT;
+					
+				}//else 
+				//{
+//					//miss
+//					if(L1C[index][i].getClean() == true)
+//					{
+//						states = States.MISSC;
+//					}else {
+//						states = States.MISSD;
+//					}
+//					//revisit when we understand MISSI
+					
+				//}
 
 					
 				//L1D array at [index][i].  block int array go to array index 0 + offset return value at index
 
-			}
+			}//else {
+//				states = States.MISSI;
+//			}
 		}
-
+		
+		if(temp.size() != 4) {
+			states = States.MISSI;
+		}else {
+			
+			if(L1C[index][fifoCounter[index]].getClean()) {
+				states = States.MISSC;
+			}else {
+				states = States.MISSD;
+			}
+		
+		}
+		
 //		is it valid? --> what is stage of control?
 //				Hit = valid is true && requested address found in cache
 //				Missc = valid is true && requested address not found in cache && line is clean state
 //				Missd = valid is true && requested address not found in cache && line is dirty state
 //				Missi = valid is false && requested address not found in cache
-
+		
 		//get a state of that line
 		//switch statement for what to do based on the state
 		
@@ -99,6 +136,34 @@ public class L1CacheController {
 		
 		return readResult;
 	}//end of readHit
+	
+	public static String readMISSC() {
+		//go to L2C
+		return null;
+	}
+	
+	public static String readMISSD() {
+		//Victimize
+		return null;
+	}
+	
+	public static String readMISSI() {
+		//go to L2C
+		return null;
+	}
+	
+	public static String writeMISSC() {
+		return null;
+		
+	}
+	
+	public static String writeMISSD() {
+		return null;
+	}
+	
+	public static String writeMISSI() {
+		return null;
+	}
 	
 }// end of class L1CacheController
 

@@ -52,10 +52,10 @@ public class L1Data {
 
 
 	public int getByte(int offset, int row, int column) {
-		LineObject temp = new LineObject();
-		temp = L1D[row][column];
-		int value = temp.getBlock().getvalue(offset);
-		return value;
+//		LineObject temp = new LineObject();
+//		temp = L1D[row][column];
+//		int value = temp.getBlock().getvalue(offset);
+//		return value;
 	}
 
 
