@@ -3,18 +3,19 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 
-public class L1CacheController {
+public class L1CacheController
+{
 
 	//we are going to be using FIFO for replacing data
 	public ControllerObject Address;
-	final public static int setSize = 4;
+	final public static int SET_SIZE = 4;
 	final public int INDEX = 6;
-	final public static int sets = 64;
-	final public int tag = 6;
-	static ControllerObject L1C[][] = new ControllerObject[sets][setSize];
-	static L1Data L1D[][] = new L1Data[sets][setSize];
-	static int[] fifoCounter = new int[sets];
-	
+	final public static int NUMBER_SETS = 64;
+	final public int TAG = 6;
+	static ControllerObject L1C[][] = new ControllerObject[NUMBER_SETS][SET_SIZE];
+	static L1Data L1D[][] = new L1Data[NUMBER_SETS][SET_SIZE];
+	static int[] fifoCounter = new int[NUMBER_SETS];
+
 	
 	//OFFSET = log2(width of block/smallest number of bytes accessed) = log2(32b/1b) = 5
 			
@@ -27,7 +28,8 @@ public class L1CacheController {
 	//Sets = lines/ways = 64B
 	
 	
-	public static void readFromCPU() {
+	public static void readFromCPU()
+	{
 		
 		//dequeue from stub
 		Queue<ControllerObject> q = new LinkedList<>();
@@ -39,82 +41,63 @@ public class L1CacheController {
 	}// end of readFromCPU
 	
 	
-	public static void writeToCPU() {
+	public static void writeToCPU()
+	{
 		
 		//enqueue to stub
 		
 	}//end of Write to CPU
 	
 	
-	public static void writeToL1Data() {
+	public static void writeToL1Data(int tag, int index, int offset, int bytes)
+	{
 		
 		//request a line from L1D
 		//get a state of that line
+		States state;
+		state = check_State(tag, index);
+		switch (state)
+		{
+			case HIT:
+				writeHit(tag, index, offset, bytes);
+				break;
+			case MISSC:
+				writeMISSC();
+				break;
+			case MISSD:
+				writeMISSD();
+				break;
+			case MISSI:
+				writeMISSI();
+				break;
+		}
 		
 	}//end of writeToL1Data
 	
-	public static void readFromL1Data( int tag, int index, int offset, int bytes) {
-		
+	public static void readFromL1Data( int tag, int index, int offset, int bytes)
+	{
 		//request a line from L1D
-		ArrayList<ControllerObject> temp = new ArrayList<ControllerObject>();
+		//ArrayList<ControllerObject> temp = new ArrayList<ControllerObject>();
 		//ControllerObject temp;
-		States states;
-		
-		//Arrays.fill(fifoCounter, 0);
-		
-//		L1Data[][] L1D = new L1Data();
-		//LineObject line = new LineObject();
-		
-		for(int i=0; i < L1C[index].length;i++) {
-			if(L1C[index][i].getValid() == true)
-			{
-				//store objects in L1D
-				temp.add(L1C[index][i]);
-				
-				
-				if(tag == L1C[index][i].getTag())
-				{
-					//check if it is a hit
-					states = States.HIT;
-					
-				}//else 
-				//{
-//					//miss
-//					if(L1C[index][i].getClean() == true)
-//					{
-//						states = States.MISSC;
-//					}else {
-//						states = States.MISSD;
-//					}
-//					//revisit when we understand MISSI
-					
-				//}
-
-					
-				//L1D array at [index][i].  block int array go to array index 0 + offset return value at index
-
-			}//else {
-//				states = States.MISSI;
-//			}
+		States state;
+		state = check_State(tag, index);
+		switch (state)
+		{
+			case HIT:
+				readHit(tag, index, offset, bytes);
+				break;
+			case MISSC:
+				readMISSC();
+				break;
+			case MISSD:
+				readMISSD();
+				break;
+			case MISSI:
+				readMISSI();
+				break;
 		}
 		
-		if(temp.size() != 4) {
-			states = States.MISSI;
-		}else {
-			
-			if(L1C[index][fifoCounter[index]].getClean()) {
-				states = States.MISSC;
-			}else {
-				states = States.MISSD;
-			}
-		
-		}
-		
-//		is it valid? --> what is stage of control?
-//				Hit = valid is true && requested address found in cache
-//				Missc = valid is true && requested address not found in cache && line is clean state
-//				Missd = valid is true && requested address not found in cache && line is dirty state
-//				Missi = valid is false && requested address not found in cache
+
 		
 		//get a state of that line
 		//switch statement for what to do based on the state
@@ -123,7 +106,8 @@ public class L1CacheController {
 	}//readFromL1Data
 	
 	
-	public static String readHit(int row, int column, int offset, int numberOfBytes) {
+	public static String readHit(int row, int column, int offset, int numberOfBytes)
+	{
 		
 		String readResult = "";
 
@@ -137,22 +121,26 @@ public class L1CacheController {
 		return readResult;
 	}//end of readHit
 	
-	public static String readMISSC() {
+	public static String readMISSC(int tag, int index)
+	{
 		//go to L2C
 		return null;
 	}
 	
-	public static String readMISSD() {
+	public static String readMISSD()
+	{
 		//Victimize
 		return null;
 	}
 	
-	public static String readMISSI() {
+	public static String readMISSI()
+	{
 		//go to L2C
 		return null;
 	}
 	
-	public static String writeMISSC() {
+	public static String writeMISSC()
+	{
 		return null;
 		
 	}
@@ -164,7 +152,64 @@ public class L1CacheController {
 	public static String writeMISSI() {
 		return null;
 	}
-	
+
+	// Get memory address ( tag and index) and get the block State
+	//		is it valid? --> what is stage of control?
+	//		Hit = valid is true && requested address found in cache
+	//		Missc = valid is true && requested address not found in cache && line is clean state
+	//		Missd = valid is true && requested address not found in cache && line is dirty state
+	//		Missi = valid is false && requested address not found in cache
+	public static States check_State(int tag, int index)
+	{
+		int number_of_valid = 0;
+		States states = null;
+
+		for(int i=0; i < L1C[index].length;i++)
+		{
+			if(L1C[index][i].getValid() == true)
+			{
+				//store objects in L1D
+				//temp.add(L1C[index][i]);
+				number_of_valid++;
+
+				if(tag == L1C[index][i].getTag())
+				{
+					//check if it is a hit
+					states = States.HIT;
+					break;
+				}
+			}
+		}
+		if(states != States.HIT)
+		{
+			if (number_of_valid != SET_SIZE) {
+				states = States.MISSI;
+			}
+			else
+				{
+
+				if (L1C[index][fifoCounter[index]].getClean())
+				{
+					states = States.MISSC;
+				}
+				else
+					{
+					states = States.MISSD;
+					}
+			}
+		}
+		return states;
+	}
+	//Whenever called add one to the counter in the respective row
+	// if the value of the counter is bigger than setSIZE ste counter to zero
+	public static void fifoStepper(int row)
+	{
+		fifoCounter[row] += 1;
+		if (fifoCounter[row] >= SET_SIZE)
+		{
+			fifoCounter[row] = 0;
+		}
+	}
 }// end of class L1CacheController
 
 
