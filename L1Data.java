@@ -2,14 +2,14 @@
 public class L1Data {
 
 	//receive offset
+	final int blockSize = 32;
 	L1CacheController L1C = new L1CacheController();
-	
-	ControllerObject L1D[][] = new ControllerObject[L1C.sets][L1C.setSize];
-	
+	String[][][] L1D = new String[L1C.NUMBER_SETS][L1C.SET_SIZE][blockSize];
 	
 	
 	
-	public L1Data(L1CacheController l1c, ControllerObject[][] l1d) {
+	
+	public L1Data(L1CacheController l1c, String[][][] l1d) {
 		super();
 		L1C = l1c;
 		L1D = l1d;
@@ -37,26 +37,23 @@ public class L1Data {
 
 
 
-	public ControllerObject[][] getL1D() {
+	public String[][][] getL1D() {
 		return L1D;
 	}
 
-
+	public String getL1DValue (int row, int column, int byteIndex){
+		return L1D[row][column][byteIndex];
+	}
 	
 
 
-	public void setL1D(ControllerObject[][] l1d) {
+	public void setL1D(String[][][] l1d) {
 		L1D = l1d;
 	}
 
 
 
-	public int getByte(int offset, int row, int column) {
-//		LineObject temp = new LineObject();
-//		temp = L1D[row][column];
-//		int value = temp.getBlock().getvalue(offset);
-//		return value;
-	}
+
 
 
 	

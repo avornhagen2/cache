@@ -13,7 +13,7 @@ public class L1CacheController
 	final public static int NUMBER_SETS = 64;
 	final public int TAG = 6;
 	static ControllerObject L1C[][] = new ControllerObject[NUMBER_SETS][SET_SIZE];
-	static L1Data L1D[][] = new L1Data[NUMBER_SETS][SET_SIZE];
+	//static L1Data L1D[][] = new L1Data[NUMBER_SETS][SET_SIZE];
 	static int[] fifoCounter = new int[NUMBER_SETS];
 
 	
@@ -28,11 +28,11 @@ public class L1CacheController
 	//Sets = lines/ways = 64B
 	
 	
-	public static void readFromCPU()
+	public static void inputFromCPU()
 	{
 		
 		//dequeue from stub
-		Queue<ControllerObject> q = new LinkedList<>();
+		//Queue<ControllerObject> q = new LinkedList<>();
 		
 		//contents of L1C array
 		//state, valid, 
@@ -41,7 +41,7 @@ public class L1CacheController
 	}// end of readFromCPU
 	
 	
-	public static void writeToCPU()
+	public static void outputToCPU()
 	{
 		
 		//enqueue to stub
@@ -73,6 +73,21 @@ public class L1CacheController
 		}
 		
 	}//end of writeToL1Data
+	
+	//transient states for L1 Controller
+//	Rdwaitd		Waiting for data from L1 for Read
+//	RdwaitL2d	Waiting for data from L2 for Read
+//	Rdwait1d	Waiting for data from L1/L2 for Read 
+//	Rdwait2d	Waiting for data from L1 and L2 for Read
+//	Wrwaitd		Waiting for data from L2 for Write
+//	Wrwait1d	Waiting for data from L1/L2 for Write
+//	Wrwait2d	Waiting for data from L1 and L2 for Write
+//	Wralloc		Write Allocation done
+	
+	//wait state
+	//finished state
+
+	
 	
 	public static void readFromL1Data( int tag, int index, int offset, int bytes)
 	{
@@ -106,20 +121,26 @@ public class L1CacheController
 	}//readFromL1Data
 	
 	
-	public static String readHit(int row, int column, int offset, int numberOfBytes)
+	public static void readHit(int row, int column, int offset, int numberOfBytes, L1Data L1D)
 	{
 		
 		String readResult = "";
 
 		
 		for(int i = 0; i < numberOfBytes; i++) {
-			readResult += L1D[row][column].getByte(offset,row,column);
+			
+			readResult += L1D.getL1DValue(row, column, i + offset);
 			//readFinal += readFinal.valueOf(readResult);
-			offset++;//need to check if this still works the way we want
+			//need to check if this still works the way we want
 		}
 		
-		return readResult;
+		outputToCPU();
 	}//end of readHit
+	
+	public static void writeHit(int tag, int index, int offset, int bytes)
+	{
+		
+	}
 	
 	public static String readMISSC(int tag, int index)
 	{
@@ -161,7 +182,7 @@ public class L1CacheController
 	//		Missi = valid is false && requested address not found in cache
 	public static States check_State(int tag, int index)
 	{
-		int number_of_valid = 0;
+		int numberValid = 0;
 		States states = null;
 
 		for(int i=0; i < L1C[index].length;i++)
@@ -170,7 +191,7 @@ public class L1CacheController
 			{
 				//store objects in L1D
 				//temp.add(L1C[index][i]);
-				number_of_valid++;
+				numberValid++;
 
 				if(tag == L1C[index][i].getTag())
 				{
@@ -182,7 +203,7 @@ public class L1CacheController
 		}
 		if(states != States.HIT)
 		{
-			if (number_of_valid != SET_SIZE) {
+			if (numberValid != SET_SIZE) {
 				states = States.MISSI;
 			}
 			else
@@ -193,9 +214,9 @@ public class L1CacheController
 					states = States.MISSC;
 				}
 				else
-					{
+				{
 					states = States.MISSD;
-					}
+				}
 			}
 		}
 		return states;

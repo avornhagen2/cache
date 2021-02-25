@@ -7,6 +7,7 @@ public class ControllerObject {
 	private static boolean Clean;
 	
 	
+	
 	public ControllerObject(int tag, int index, boolean valid, boolean clean) {
 		super();
 		Tag = tag;
@@ -55,8 +56,7 @@ public class ControllerObject {
 		ControllerObject.Clean = clean;
 	}
 
-	
-	
+
 	 
 	
 }//end of ControllerObject

@@ -17,6 +17,10 @@ public class MemoryHierarchyDriver {
 		
 		CPUStub cpu = new CPUStub();
 		L1CacheController L1C = new L1CacheController();
+		//L1D
+		//L2C
+		//L2D
+		//memory stub
 		
 		ArrayList<String> inputs = new ArrayList<String>();
 		
@@ -27,5 +31,9 @@ public class MemoryHierarchyDriver {
 	}//end of main
 	
 	
+	//cache manager method
+	public static void cacheManager() {
+		
+	}
 
 }//end of class MemoryHierarchyDriver
