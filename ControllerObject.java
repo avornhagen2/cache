@@ -47,16 +47,16 @@ public class ControllerObject {
 	}
 
 
-	public static boolean getClean() {
+	public boolean getClean() {
 		return Clean;
 	}
 
 
-	public static void setClean(boolean clean) {
+	public void setClean(boolean clean) {
 		ControllerObject.Clean = clean;
 	}
 
-
+	
 	 
 	
 }//end of ControllerObject

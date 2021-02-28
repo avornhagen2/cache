@@ -12,11 +12,10 @@ public class MemoryHierarchyDriver {
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-
-		String[] DRAM = null;
 		
 		CPUStub cpu = new CPUStub();
 		L1CacheController L1C = new L1CacheController();
+		//Victimize
 		//L1D
 		//L2C
 		//L2D
