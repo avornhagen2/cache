@@ -8,12 +8,12 @@ public class VictimCacheForL1 extends Cache {
 	LineObject[] victimData = new LineObject[setSize];
 	
 	
-	public VictimCacheForL1(int[][] victimInstruction, LineObject[] victimData) {
-		super();
-		this.victimInstruction = victimInstruction;
-		this.victimData = victimData;
-	}
-	
+//	public VictimCacheForL1(int[][] victimInstruction, LineObject[] victimData) {
+//		super();
+//		this.victimInstruction = victimInstruction;
+//		this.victimData = victimData;
+//	}
+//	
 	
 	public int[][] getVictimInstruction() {
 		return victimInstruction;
@@ -35,8 +35,8 @@ public class VictimCacheForL1 extends Cache {
 		this.victimData = victimData;
 	}
 	
-	public void setVictimDataValue(int index, LineObject data) {
-		victimData[index] = data;
+	public void setVictimDataValue(int index, String[] data) {
+		victimData[index].setBlock(data);
 	}
 	
 }// end of victimcacheforL1

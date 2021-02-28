@@ -64,20 +64,20 @@ public class Cache {
 		}
 	}
 			
-	public static States check_State(int tag, int index, ControllerObject[][] cache2D)
+	public static States check_State(int row, int column, ControllerObject[][] cache2D)
 	{
 		int numberValid = 0;
 		States states = null;
 
-		for(int i=0; i < cache2D[index].length;i++)
+		for(int i=0; i < cache2D[row].length;i++)
 		{
-			if(cache2D[index][i].getValid() == true)
+			if(cache2D[row][i].getValid() == true)
 			{
 				//store objects in L1D
 				//temp.add(L1C[index][i]);
 				numberValid++;
 
-				if(tag == cache2D[index][i].getTag())
+				if(column == cache2D[row][i].getTag())
 				{
 					//check if it is a hit
 					states = States.HIT;
@@ -93,7 +93,7 @@ public class Cache {
 			else
 				{
 
-				if (cache2D[index][fifoCounter[index]].getClean())
+				if (cache2D[row][fifoCounter[row]].getClean())
 				{
 					states = States.MISSC;
 				}
@@ -104,5 +104,8 @@ public class Cache {
 			}
 		}
 		return states;
-	}
+	}//end of check state
+	
+
+	
 }//end of cache

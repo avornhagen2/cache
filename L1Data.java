@@ -34,7 +34,10 @@ public class L1Data {
 		return L1D[row][column].getBlock()[byteIndex];
 	}
 
-
+	public String[] getL1DBlock(int row, int column) {
+		
+		return L1D[row][column].getBlock();
+	}
 	
 
 

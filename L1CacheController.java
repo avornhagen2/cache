@@ -16,13 +16,13 @@ public class L1CacheController extends Cache
 	//final public int TAG = 6;
 	static ControllerObject L1C[][] = new ControllerObject[NUMBER_SETS][SET_SIZE];
 	static CPUStub CPU;
-	static L1Data L1D;
+	static L1Data L1D = new L1Data(NUMBER_SETS,SET_SIZE);
+	static VictimCacheForL1 victim = new VictimCacheForL1();
 	static L2Cache L2;
 	
 	//static int[] fifoCounter = new int[NUMBER_SETS];
-	public L1CacheController (CPUStub CPUStub , L1Data L1Data, L2Cache L2Cache) {
+	public L1CacheController (CPUStub CPUStub, L2Cache L2Cache) {
 		CPU = CPUStub;
-		L1D = L1Data;
 		L2 = L2Cache;
 	}
 
@@ -59,26 +59,26 @@ public class L1CacheController extends Cache
 	}//end of Write to CPU
 	
 	
-	public static void writeToL1Data(int tag, int index, int offset, int bytes, String[] input, L1Data L1D)
+	public static void writeToL1Data(int row, int column, int offset, int numberOfBytes, int[] tagAndIndex, String[] dataFromCPU)
 	{
 		
 		//request a line from L1D
 		//get a state of that line
 		States state;
-		state = check_State(tag, index, L1C);
+		state = check_State(row, column, L1C);
 		switch (state)
 		{
 			case HIT:
-				writeHit(tag, index, offset, bytes, input, L1D);
+				writeHit(row, column, offset, numberOfBytes, dataFromCPU);
 				break;
 			case MISSC:
-				writeMISSC();
+				writeMISSC(row, column, offset, numberOfBytes, dataFromCPU);
 				break;
 			case MISSD:
-				writeMISSD();
+				writeMISSD(row, column, offset, numberOfBytes, tagAndIndex,  dataFromCPU);
 				break;
 			case MISSI:
-				writeMISSI();
+				writeMISSI(row, column, offset, numberOfBytes, dataFromCPU);
 				break;
 		}
 		
@@ -99,26 +99,24 @@ public class L1CacheController extends Cache
 
 	
 	
-	public static void readFromL1Data( int tag, int index, int offset, int bytes, L1Data L1D)
+	public static void readFromL1Data( int row, int column, int offset, int bytes, int[] tagAndIndex)
 	{
 		//request a line from L1D
 		//ArrayList<ControllerObject> temp = new ArrayList<ControllerObject>();
 		//ControllerObject temp;
 		States state;
-		state = check_State(tag, index, L1C);
+		state = check_State(row, column, L1C);
 		switch (state)
 		{
 			case HIT:
-				readHit(tag, index, offset, bytes, L1D);
+				readHit(row, column, offset, bytes, L1D);
 				break;
 			case MISSC:
-				readMISSC(tag, index);
+			case MISSI:
+				readMISSCAndMISSI(row, column, offset, bytes);
 				break;
 			case MISSD:
-				readMISSD();
-				break;
-			case MISSI:
-				readMISSI();
+				readMISSD(row, column, tagAndIndex, L2);
 				break;
 		}
 		
@@ -147,83 +145,100 @@ public class L1CacheController extends Cache
 		outputToCPU();
 	}//end of readHit
 	
-	public static void writeHit(int tag, int index, int offset, int byteNumber, String[] input, L1Data L1D)
+	
+	
+	public static void readMISSCAndMISSI(int row, int column, int offset, int byteNumber)
 	{
-		for(int i = 0; i < byteNumber; i++) {
-			L1D.setL1DValue(input[i], tag, index, offset + i);
+		String[] input = L2.readFromL2();
+		
+		for(int i = 0; i < L1D.getL1D().blockSize; i++) {
+			L1D.setL1DValue(input[i], row, column, i);
 		}
 		
-		L1C[index][tag].setClean(false);//set to dirty
+		L1C[row][column].setClean(true);//set to clean
+			
+		outputToCPU();
 	}
 	
-	public static void readMISSC(int row, int column, VictimCacheForL1 victim, LineObject data, L1Data L1D, L2Cache L2)
+	public static void readMISSD(int row, int column, int[] tagAndIndex, L2Cache L2)
 	{
 		//victimize
 		int replace = fifoCounter[row];
 		int sets = 1;
 		int[] info = new int[] {row,column};	
 		
-		String[] input = L2.readFromL2();//QUESTION: would this string be a string array instead?
+		//get data from L1D with row and column
+		String[] dataFromL1D = L1D.getL1DBlock(row, column);
 		
-		//Cache.setNUMBER_SETS(sets);
-		victim.setVictimInstructionValue(row, victim.fifoCounter[0], info);
-		victim.setVictimDataValue(row, data);
-		
-		for(int i = 0; i < L1D.getL1D().blockSize; i++) {
-			L1D.setL1DValue(input[i], row, column, i);//I changed this to input[i]
-		}
-		
+		victimize(row, column, tagAndIndex, dataFromL1D, victim);
+		String[] input = L2.readFromL2();
 	
+		for(int i = 0; i < L1D.getL1D().blockSize; i++) {
+			L1D.setL1DValue(input[i], row, column, i);
+		}
+				
+			
 		outputToCPU();
 	}
 	
-	public static String readMISSD()
+
+	public static void writeHit(int row, int column, int offset, int byteNumber, String[] input)
 	{
-		//Victimize
-		return null;
-	}
-	
-	public static String readMISSI()
-	{
-		
-		//go to L2C
-		
-		return null;
-	}
-	
-	public static void writeMISSC(int tag, int index, int offset, int byteNumber, String[] input, L1Data L1D)
-	{
-		//Another complexity is that the processor also specifies the size of the write, usually between 1 and 8 bytes; only that portion of a block can be changed.
-		input = L2.readFromL2();
-		
 		for(int i = 0; i < byteNumber; i++) {
-			L1D.setL1DValue(input[i], tag, index, offset + i);
+			L1D.setL1DValue(input[i], row, column,offset + i);
 		}
 		
-		L1C[index][tag].setClean(false);//set to dirty
+		L1C[row][column].setClean(false);//set to dirty
+	}
+	
+	public static void writeMISSC(int row, int column, int offset, int byteNumber, String[] input)
+	{
+
+		getDataFromL2toL1(row, column, offset, byteNumber);
 		
-		//victimize
-		//update L1 cache
-		//update L2 cache
-		//update DRAM
+		//stuff with buffers
 		
 	}
 	
-	public static String writeMISSD() {
-		return null;
+	public static void writeMISSD(int row, int column, int offset, int byteNumber, int[] tagAndIndex, String[] dataFromCPU) {
+		
+
+		//get tag and index and data from parsing CPU input
+		victimize(row, column, tagAndIndex, dataFromCPU, victim);
+		getDataFromL2toL1(row, column, offset, byteNumber);
+		
 	}
 	
-	public static String writeMISSI() {
-		return null;
+	public static void writeMISSI(int row, int column, int offset, int byteNumber, String[] input) {
+		
+		getDataFromL2toL1(row, column, offset, byteNumber);
+		
 	}
 
-	// Get memory address ( tag and index) and get the block State
-	//		is it valid? --> what is stage of control?
-	//		Hit = valid is true && requested address found in cache
-	//		Missc = valid is true && requested address not found in cache && line is clean state
-	//		Missd = valid is true && requested address not found in cache && line is dirty state
-	//		Missi = valid is false && requested address not found in cache
 	
+	public static void getDataFromL2toL1(int row, int column, int offset, int byteNumber) {
+		String[] dataFromL2 = L2.readFromL2();
+		
+		for(int i = 0; i < byteNumber; i++) {
+			//writing data from L2 into L1D
+			L1D.setL1DValue(dataFromL2[i], row, column, offset + i);
+		}
+		
+		L1C[row][column].setClean(false);//set to dirty
+		
+	}//end of getDataFromL2toL1
+	
+	public static void victimize(int row, int column, int[] tagAndIndex, String[] data, VictimCacheForL1 victim) {
+		
+		victim.setVictimInstructionValue(row, victim.fifoCounter[0], tagAndIndex);
+		victim.setVictimDataValue(row, data);
+		//write buffer here maybe?
+		//READ ABOUT THIS
+		//NOT FINISHED YET
+		
+	}//end of victimize
+	
+
 	
 }// end of class L1CacheController
 
