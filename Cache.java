@@ -5,7 +5,6 @@ public class Cache {
 	public static int SET_SIZE;
 	public int INDEX;
 	public int TAG;
-	public 
 	static int[] fifoCounter = new int[NUMBER_SETS];
 	
 	

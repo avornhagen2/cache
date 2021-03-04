@@ -7,8 +7,13 @@ public class L2Cache extends Cache {
 	
 	public String[] readFromL2() {
 		String[] data = null;
-		
+		//
 		return data;
+	}
+	
+	
+	public void writeToL2() {
+		
 	}
 	
 	

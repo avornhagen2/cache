@@ -18,8 +18,8 @@ public class CPUStub {
 			//support 2 - 8 blocked processor instructions
 		//Address
 		ArrayList<String> input = new ArrayList<String>();
-		input.add("CPURead A 4");//first part is instruction, second part is location(memory address), third part is size(number of bytes)
-		input.add("CPURead A 4");
+		input.add("CPURead 1023 2");//first part is instruction, second part is location(memory address), third part is size(number of bytes)
+		input.add("CPURead 1023 2");
 		
 		return input;
 		
@@ -32,6 +32,7 @@ public class CPUStub {
 		//value returned
 		//write to external file (ask prof about this)
 		//same format at input but what we receive from memory hierarchy
+		//write to text file
 		
 	}//sendOutputResults
 	
@@ -48,6 +49,7 @@ public class CPUStub {
 		//dequeue from L1
 		
 	}//end of readInputL1CacheController
+	
 	
 
 }//end of class CPUStub
