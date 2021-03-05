@@ -1,33 +1,53 @@
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 public class CacheScheduler {
 
 	int time = 0;
 	
-	Queue<String>[] inputs = new LinkedList[9]; 
+	List<Queue<Object>> listOfQueues = new ArrayList<Queue<Object>>();
 	
-	for(int i = 0; i < 9; i++) 
+	public void addQueue() 
 	{
-		inputs[i] = new LinkedList<String>();
+		listOfQueues.add(new LinkedList<Object>());
 	}
-
 	
+	public void addToSpecificQueue(int indexOfQueue, Object x)
+	{
+		listOfQueues.get(indexOfQueue).add(x);
+	}
 	
-	
-	
-	
-	//ArrayList<Queue[]> inputs = new ArrayList<Queue<String>[9]>();
-	
-//Queue<String>[] q; // = new Queue<String>[9];
-	
-//	queues = new Queue[9];
-//	
-//	for(int i = 0; i < i <= 9; i++) {
-//		q[i] = new LinkedList<String>();
+//	public void removeFromSpecificQueue(int indexOfQueue, Object x)
+//	{
+//		listOfQueues.get(indexOfQueue).remove(x);
 //	}
-//	
-	//queues = new Queue[9];
 	
+	public Object getFrontOfSingleQueue(int indexOfQueue)
+	{
+		return listOfQueues.get(indexOfQueue).poll();
+	}
+	
+	public void removeHeadOfQueue(int indexOfQueue)
+	{
+		listOfQueues.get(indexOfQueue).remove();
+	}
+	
+	public void makeSingleQueueEmpty(int indexOfQueue) 
+	{
+		listOfQueues.get(indexOfQueue).clear();
+	}
+	
+	public boolean isSingleQueueEmpty(int indexOfQueue)
+	{
+		return listOfQueues.get(indexOfQueue).isEmpty();
+	}
 	
 }//end of cache scheduler
+
+
+
+
+
+
