@@ -1,4 +1,9 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Scanner;
+
+
 
 /***************************************************
 * Program Title: CSCI 8150 Advanced Computer Architecture Project *
@@ -13,19 +18,9 @@ public class MemoryHierarchyDriver {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		
-		CPUStub cpu = new CPUStub();
-		L1CacheController L1C = new L1CacheController();
-		//Victimize
-		//L1D
-		//L2C
-		//L2D
-		//memory stub
-		
-		ArrayList<String> inputs = new ArrayList<String>();
-		
-		inputs = cpu.loadFileInput();
-		
-		L1C.readFromCPU();
+		CacheManager scheduler = new CacheManager();
+		loadFileInput(args[0],scheduler.alq);
+		scheduler.runCycles();
 		
 	}//end of main
 	
@@ -34,5 +29,23 @@ public class MemoryHierarchyDriver {
 	public static void cacheManager() {
 		
 	}
+	
+	public static void loadFileInput(String file, ArrayListQueue alq) {
+		
+		//read from file
+		Scanner input = null;
+
+		input = new Scanner(file);
+
+		while(input.hasNextLine())
+		{
+			alq.addToSpecificQueue(0, input.nextLine());
+		}
+		
+		input.close();
+
+		//first part is instruction, second part is location(memory address), third part is size(number of bytes)
+
+	}//end of loadFileInput
 
 }//end of class MemoryHierarchyDriver

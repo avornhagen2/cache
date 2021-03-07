@@ -19,7 +19,9 @@ public class LineObject {
 		return block;
 	}
 
-
+	public String getBlockValue(int byteNumber) {
+		return block[byteNumber];
+	}
 
 	public void setBlock(String[] bytes) {
 		this.block = block;

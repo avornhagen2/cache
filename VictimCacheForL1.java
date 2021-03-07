@@ -1,4 +1,5 @@
 
+
 public class VictimCacheForL1 extends Cache {
 
 	final int row = 2;
@@ -6,6 +7,8 @@ public class VictimCacheForL1 extends Cache {
 	final int setSize = 2;
 	int[][] victimInstruction = new int[row][column];
 	LineObject[] victimData = new LineObject[setSize];
+	LRU[] lru = new LRU[row];
+	
 	
 	
 //	public VictimCacheForL1(int[][] victimInstruction, LineObject[] victimData) {
@@ -15,28 +18,48 @@ public class VictimCacheForL1 extends Cache {
 //	}
 //	
 	
-	public int[][] getVictimInstruction() {
-		return victimInstruction;
+//	public int[][] getVictimInstruction() {
+//		return victimInstruction;
+//	}
+//	
+//	public void setVictimInstruction(int[][] victimInstruction) {
+//		this.victimInstruction = victimInstruction;
+//	}
+//	
+	public void check(int tag, int index)
+	{
+		for(int i = 0; i < victimInstruction.length; i++)
+		{
+			if(tag == victimInstruction[i][0] && index == victimInstruction[i][1])
+			{
+				//send to L1C and L1D
+				
+			}
+		}
 	}
 	
-	public void setVictimInstruction(int[][] victimInstruction) {
-		this.victimInstruction = victimInstruction;
+	public void victimLRU()
+	{
+		
 	}
 	
-	public void setVictimInstructionValue(int row, int column, int[] data) {
-		victimInstruction[row] = data;
+	public void setVictimValue(int[] data, String[] data) {
+		victimInstruction[] = data;
+		victimData[index].setBlock(data);
 	}
 	
 	public LineObject[] getVictimData() {
 		return victimData;
 	}
 	
-	public void setVictimData(LineObject[] victimData) {
-		this.victimData = victimData;
-	}
+//	public void setVictimData(LineObject[] victimData) {
+//		this.victimData = victimData;
+//	}
 	
 	public void setVictimDataValue(int index, String[] data) {
 		victimData[index].setBlock(data);
 	}
+	
+	
 	
 }// end of victimcacheforL1

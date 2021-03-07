@@ -1,4 +1,8 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Queue;
+import java.util.Scanner;
 
 public class CPUStub {
 
@@ -10,20 +14,7 @@ public class CPUStub {
 	
 	
 	//Get data from I/O
-	public static ArrayList<String> loadFileInput() {
-		
-		//CPU Read Instructions
-			//support 2 - 8 blocked processor instructions
-		//CPU Write Instructions
-			//support 2 - 8 blocked processor instructions
-		//Address
-		ArrayList<String> input = new ArrayList<String>();
-		input.add("CPURead 1023 2");//first part is instruction, second part is location(memory address), third part is size(number of bytes)
-		input.add("CPURead 1023 2");
-		
-		return input;
-		
-	}//end of loadFileInput
+	
 	
 	//Send data to I/O
 	public static void sendOutputResults() {

@@ -1,13 +1,17 @@
 
 public class MemoryStub {
 
-	final int TAG = 0;
-	final int setSize = 4000;
+	final int setSize = 4000;//change this to exact amount
 	final public int TAG = 64; //since index = 2^6, so the ideia is 64*tag + index// need to check
 	private LineObject[] DRAM = new LineObject[setSize];
 	//private LineObject current;
 	private LineObject updateValue;
 
+	public static void run(ArrayListQueue alq)
+	{
+		
+	}
+	
 	public LineObject getBlock(int index, int tag)
 	{
 		int row = tag * TAG + index;
@@ -24,7 +28,7 @@ public class MemoryStub {
 		String[] split = input.trim().split(" ");
 		for (int i = 0; i < busSize; i++)
 		{
-			DRAM[row].setBlockValue(startValue + i, split[i]); //set value for the array string once at a time
+			DRAM[row].setBlockValue(split[i], startValue + i); //set value for the array string once at a time
 		}
 
 	}
@@ -35,7 +39,7 @@ public class MemoryStub {
 		String output = "";
 		for (int i = 0; i < busSize; i++)
 		{
-			output += current[startValue + i] + " "; //each value is going to be separated by an space, need to remember to separate the string latter
+			output += current.getBlockValue(i) + " "; //each value is going to be separated by an space, need to remember to separate the string latter
 		}
 		return output;
 	}

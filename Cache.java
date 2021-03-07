@@ -5,7 +5,8 @@ public class Cache {
 	public static int SET_SIZE;
 	public int INDEX;
 	public int TAG;
-	static int[] fifoCounter = new int[NUMBER_SETS];
+	
+
 	
 	
 	
@@ -35,51 +36,25 @@ public class Cache {
 		SET_SIZE = sET_SIZE;
 	}
 
-
-
-
-	public static int[] getFifoCounter() {
-		return fifoCounter;
-	}
-
-
-
-
-	public static void setFifoCounter(int[] fifoCounter) {
-		Cache.fifoCounter = fifoCounter;
-	}
-
-
-
-
-	//Whenever called add one to the counter in the respective row
-	// if the value of the counter is bigger than setSIZE ste counter to zero
-	public static void fifoStepper(int row)
-	{
-		fifoCounter[row] += 1;
-		if (fifoCounter[row] >= SET_SIZE)
-		{
-			fifoCounter[row] = 0;
-		}
-	}
-			
-	public static States check_State(int row, int column, ControllerObject[][] cache2D)
+//have to change check state for L2
+	public static States check_State(int index, int tag, ControllerObject[][] cache2D)
 	{
 		int numberValid = 0;
 		States states = null;
 
-		for(int i=0; i < cache2D[row].length;i++)
+		for(int i=0; i < cache2D[index].length;i++)
 		{
-			if(cache2D[row][i].getValid() == true)
+			if(cache2D[index][i].getValid() == true)
 			{
 				//store objects in L1D
 				//temp.add(L1C[index][i]);
 				numberValid++;
 
-				if(column == cache2D[row][i].getTag())
+				if(tag == cache2D[index][i].getTag())
 				{
 					//check if it is a hit
 					states = States.HIT;
+					COLUMN = i;
 					break;
 				}
 			}
@@ -90,9 +65,9 @@ public class Cache {
 				states = States.MISSI;
 			}
 			else
-				{
+			{
 
-				if (cache2D[row][fifoCounter[row]].getClean())
+				if (cache2D[index][fifoCounter[index]].getClean())//change fifocounter[index]
 				{
 					states = States.MISSC;
 				}
@@ -100,7 +75,9 @@ public class Cache {
 				{
 					states = States.MISSD;
 				}
+			COLUMN = fifoCounter[index];
 			}
+			
 		}
 		return states;
 	}//end of check state

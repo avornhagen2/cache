@@ -5,16 +5,9 @@ public class L2Cache extends Cache {
 	final int setSize = 500;
 	LineObject[] DRAM = new LineObject[setSize];
 	
-	public String[] readFromL2() {
-		String[] data = null;
-		//
-		return data;
-	}
-	
-	
-	public void writeToL2() {
+	public static void run(ArrayListQueue alq)
+	{
 		
 	}
-	
 	
 }//end of L2CacheController

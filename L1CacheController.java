@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 public class L1CacheController extends Cache
@@ -10,15 +11,24 @@ public class L1CacheController extends Cache
 
 	//we are going to be using FIFO for replacing data
 	public ControllerObject Address;
+	final private static int CPUtoL1C = 0;
+	final private static int L1CtoL1D = 1;
+	final private static int L1CtoL2 = 2;
+	final private static int L2toL1C = 5;
+	final private static int L1DtoL1C = 6;
+	final private static int L1CtoCPU = 7;
 	//final public static int SET_SIZE = 4;
 	//final public int INDEX = 6;
 	//final public static int NUMBER_SETS = 64;
 	//final public int TAG = 6;
+	//static int COLUMN;
 	static ControllerObject L1C[][] = new ControllerObject[NUMBER_SETS][SET_SIZE];
 	static CPUStub CPU;
 	static L1Data L1D = new L1Data(NUMBER_SETS,SET_SIZE);
 	static VictimCacheForL1 victim = new VictimCacheForL1();
 	static L2Cache L2;
+	static LRU[] lru = new LRU[NUMBER_SETS];
+	
 	
 	//static int[] fifoCounter = new int[NUMBER_SETS];
 	public L1CacheController (CPUStub CPUStub, L2Cache L2Cache) {
@@ -37,16 +47,61 @@ public class L1CacheController extends Cache
 	
 	//Sets = lines/ways = 64B
 	
+	//sample input:
+	//CPURead TAGindexOFFSET byteSize
+	//CPUWrite TAGindexOFFSET byteSize input.input.input 
+	//CPUWrite TAGindexOFFSET byteSize 1.2.3
+	//CPUWrite TAGindexOFFSET byteSize 19.20.21
 	
-	public static void inputFromCPU()
+	//CPURead 026005 8 1.2.3.4.5.6.7.8
+	
+	/*
+	 * KEY FOR INDEXES OF QUEUES
+	 * 0. CPU to L1C
+	 * 1. L1C to L1D
+	 * 2. L1C to L2
+	 * 3. L2 to DRAM
+	 * 4. DRAM to L2
+	 * 5. L2 to L1C
+	 * 6. L1D to L1C
+	 * 7. L1C to CPU
+	 */
+	
+	
+	public static void run(ArrayListQueue alq)
 	{
+		if(!alq.isSingleQueueEmpty(CPUtoL1C))//CPU to L1C
+		{
+			String input = (String) alq.dequeue(CPUtoL1C);
+			String[] split = input.trim().split(" ");
+			int Tag = Integer.parseInt(split[1].substring(0, 2));
+			int Index = Integer.parseInt(split[1].substring(2, 4));
+			int Offset = Integer.parseInt(split[1].substring(4, 6));
+			int[] tagAndIndex = new int[] {Tag,Index};
+			
+			if(split.length == 3)//this is Read
+			{
+				readFromL1Data(Tag, Index, Offset, Integer.parseInt(split[2]), tagAndIndex);
+			}else if(split.length == 4)//this is a write
+			{
+				String[] data = split[3].trim().split(".");
+				writeToL1Data(Tag, Index, Offset, Integer.parseInt(split[2]), tagAndIndex, data);
+			}else {
+				throw new Exception("invalid input");
+			}
+			
+		}
 		
-		//dequeue from stub
-		//Queue<ControllerObject> q = new LinkedList<>();
+		if(!alq.isSingleQueueEmpty(L1DtoL1C)) //L1D to L1C
+		{
+			
+		}
 		
-		//contents of L1C array
-		//state, valid, 
-		
+		if(!alq.isSingleQueueEmpty(L2toL1C)) //L2 to L1C
+		{
+			
+		}
+
 		
 	}// end of readFromCPU
 	
@@ -60,33 +115,45 @@ public class L1CacheController extends Cache
 	}//end of Write to CPU
 	
 	
-	public static void writeToL1Data(int row, int column, int offset, int numberOfBytes, int[] tagAndIndex, String[] dataFromCPU)
+	public static void writeToL1Data(int index, int tag, int offset, int numberOfBytes, int[] tagAndIndex, String[] dataFromCPU, ArrayListQueue alq)
 	{
 		
 		//request a line from L1D
 		//get a state of that line
 		States state;
 		//check victim cache
-			//if in victim cache, then write to L1C
+			//if in victim cache, then write to L1C and L1D
 			//else do nothing
+		victim.check(tag,index);
 		//check write buffer
 			//if in write buffer, then write to L1C
 			//else do nothing
-		state = check_State(row, column, L1C);
+		writebuffer.check();
+		state = check_StateL1(index, tag);
+		//debug the inputs to make sure they are working as expected
+		//row column tag index
 		switch (state)
 		{
 			case HIT:
-				writeHit(row, column, offset, numberOfBytes, dataFromCPU);
+				//enqueue to CPU L1
+				alq.enqueue(L1CtoL1D, input);
+				writeHit(index, lru[index].tail(), offset, numberOfBytes, dataFromCPU);
 				break;
-			case MISSC:
-				writeMISSC(row, column, offset, numberOfBytes, dataFromCPU);
-				break;
-			case MISSD:
-				writeMISSD(row, column, offset, numberOfBytes, tagAndIndex,  dataFromCPU);
-				break;
-			case MISSI:
-				writeMISSI(row, column, offset, numberOfBytes, dataFromCPU);
-				break;
+			default:
+				//enqueue to L2
+				alq.enqueue(L1CtoL2, input);
+//			case MISSC:
+//				//send current data to victim cache, enqueue to L1 to L2 the message
+//				writeMISSC(index, lru[index].tail(), offset, numberOfBytes, tagAndIndex, dataFromCPU);//look into this
+//				break;
+//			case MISSD:
+//				//send data to writebuffer, enqueue to L1 to L2 the message
+//				writeMISSD(index, lru[index].tail(), offset, numberOfBytes, dataFromCPU);//look into this
+//				break;
+//			case MISSI:
+//				//enqueue to L1 to L2 the message
+//				writeMISSI(index, lru[index].tail(), offset, numberOfBytes, dataFromCPU);
+//				break;
 		}
 		
 	}//end of writeToL1Data
@@ -106,27 +173,32 @@ public class L1CacheController extends Cache
 
 	
 	
-	public static void readFromL1Data( int row, int column, int offset, int bytes, int[] tagAndIndex)
+	public static void readFromL1Data( int index, int tag, int offset, int bytes, int[] tagAndIndex, ArrayListQueue alq)
 	{
 		//request a line from L1D
 		//ArrayList<ControllerObject> temp = new ArrayList<ControllerObject>();
 		//ControllerObject temp;
+		//String command 
 		States state;
-		
-		state = check_State(row, column, L1C);//add way to look into write buffer and victim cache here
+		victim.check(tag, index);
+		writebuffer.check();
+		state = check_StateL1(index, tag);//add way to look into write buffer and victim cache here
+		//debug the inputs to make sure they are working as expected
+		//row column tag index
 		switch (state)
 		{
 			case HIT:
-				readHit(row, column, offset, bytes, L1D);
+				alq.enqueue(L1CtoL1D,input);
+				//readHit(index, lru[index].tail(), offset, bytes, L1D);
 				break;
 			case MISSC:
-				readMISSC();
+				readMISSC(index, lru[index].tail(), tagAndIndex, L2);//look into this
 				break;
 			case MISSI:
-				readMISSI(row, column, offset, bytes);
+				readMISSI(index, lru[index].tail(), offset, bytes);
 				break;
 			case MISSD:
-				readMISSD(row, column, tagAndIndex, L2);
+				readMISSD(index, lru[index].tail(), tagAndIndex, L2);//look into this
 				break;
 		}
 		
@@ -255,7 +327,7 @@ public class L1CacheController extends Cache
 	
 	public static void writeToVictimCache(int row, int column, int[] tagAndIndex, String[] data, VictimCacheForL1 victim) {
 		
-		victim.setVictimInstructionValue(row, victim.fifoCounter[0], tagAndIndex);
+		victim.setVictimInstructionValue(row, tagAndIndex);
 		victim.setVictimDataValue(row, data);
 
 		
@@ -264,6 +336,54 @@ public class L1CacheController extends Cache
 	public static void writeBuffer() {
 		
 	}
+	
+	public static States check_HitL1(int index, int tag)
+	{
+		int numberValid = 0;
+		States states = null;
+
+		for(int i=0; i < L1C[index].length;i++)
+		{
+			if(L1C[index][i].getValid() == true)
+			{
+				//store objects in L1D
+				//temp.add(L1C[index][i]);
+				numberValid++;
+
+				if(tag == L1C[index][i].getTag())
+				{
+					//check if it is a hit
+					states = States.HIT;
+					//COLUMN = i;
+					LRU.LRUHit(i);
+					break;
+				}
+			}
+		}
+//		if(states != States.HIT)
+//		{
+//			if (numberValid != SET_SIZE) {
+//				states = States.MISSI;
+//				LRU.LRUMissI(numberValid);
+//			}
+//			else
+//			{
+//				int temp = LRU.LRUMissCD();
+//				if (L1C[index][temp].getClean())//change fifocounter[index]
+//				{
+//					states = States.MISSC;
+//		
+//				}
+//				else
+//				{
+//					states = States.MISSD;
+//				}
+//			//COLUMN = temp;
+//			}
+//			
+//		}
+		return states;
+	}//end of check state
 	
 }// end of class L1CacheController
 
