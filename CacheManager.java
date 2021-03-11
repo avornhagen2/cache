@@ -34,9 +34,10 @@ public class CacheManager {
 			//
 			
 			L1C.run(alq);
-			L2.
-			memory.
-			cpu.
+			L1D.run();
+			L2.run();
+			memory.run();
+			cpu.run();
 			//update set all waits to false
 			
 			for(int i = 0; i < 8; i++) {

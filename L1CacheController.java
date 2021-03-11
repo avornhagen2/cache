@@ -8,7 +8,7 @@ public class L1CacheController extends Cache
 {	
 	
 	
-
+	public static int transaction = -1;
 	//we are going to be using FIFO for replacing data
 	public ControllerObject Address;
 	final private static int CPUtoL1C = 0;
@@ -72,33 +72,78 @@ public class L1CacheController extends Cache
 	{
 		if(!alq.isSingleQueueEmpty(CPUtoL1C))//CPU to L1C
 		{
-			String input = (String) alq.dequeue(CPUtoL1C);
+			QueueObject messageAndWait = alq.dequeue(CPUtoL1C);
+			String input = messageAndWait.getMessage();
+			messageAndWait.setWait(true);
+			
 			String[] split = input.trim().split(" ");
 			int Tag = Integer.parseInt(split[1].substring(0, 2));
 			int Index = Integer.parseInt(split[1].substring(2, 4));
-			int Offset = Integer.parseInt(split[1].substring(4, 6));
-			int[] tagAndIndex = new int[] {Tag,Index};
+			States currentState = check_StateL1(Index, Tag);
 			
-			if(split.length == 3)//this is Read
+
+			if(currentState == States.HIT)
 			{
-				readFromL1Data(Tag, Index, Offset, Integer.parseInt(split[2]), tagAndIndex);
-			}else if(split.length == 4)//this is a write
+				alq.enqueue(L1CtoL1D, messageAndWait);//on a hit we enqueue to L1D
+			}else if(currentState == States.MISSI)
 			{
-				String[] data = split[3].trim().split(".");
-				writeToL1Data(Tag, Index, Offset, Integer.parseInt(split[2]), tagAndIndex, data);
-			}else {
-				throw new Exception("invalid input");
+				messageAndWait.setTransactionL1(transaction);
+				alq.enqueue(L1CtoL2, messageAndWait);//on a miss we enqueue to L2
+			}else if(currentState == States.MISSD)
+			{
+				QueueObject writeBufferObject = new QueueObject();
+				String writeBufferMessage = "WriteBuffer " + Tag + " " + Index;
+				writeBufferObject.setMessage(writeBufferMessage);
+				messageAndWait.setTransactionL1(transaction);
+				alq.enqueue(L1CtoL1D, writeBufferObject);
+				alq.enqueue(L1CtoL2, messageAndWait);
+			}else if(currentState == States.MISSC)
+			{
+				QueueObject victimCacheObject = new QueueObject();
+				String victimCacheMessage = "VictimCache " + Tag + " " + Index;
+				victimCacheObject.setMessage(victimCacheMessage);
+				messageAndWait.setTransactionL1(transaction);
+				alq.enqueue(L1CtoL1D, victimCacheObject);
+				alq.enqueue(L1CtoL2, messageAndWait);
 			}
+			
+//			if(split.length == 3)//this is Read
+//			{
+//				readFromL1Data(Tag, Index, Offset, Integer.parseInt(split[2]), tagAndIndex);
+//			}else if(split.length == 4)//this is a write
+//			{
+//				String[] data = split[3].trim().split(".");
+//				writeToL1Data(Tag, Index, Offset, Integer.parseInt(split[2]), tagAndIndex, data);
+//			}else {
+//				throw new Exception("invalid input");
+//			}
 			
 		}
 		
 		if(!alq.isSingleQueueEmpty(L1DtoL1C)) //L1D to L1C
 		{
+			QueueObject messageAndWait = alq.dequeue(L1DtoL1C);
+			String input = messageAndWait.getMessage();
+			messageAndWait.setWait(true);
 			
+			String[] split = input.trim().split(" ");
+			int Tag = Integer.parseInt(split[1].substring(0, 2));
+			int Index = Integer.parseInt(split[1].substring(2, 4));
+			
+			//victim cache
+			//write buffer
 		}
 		
 		if(!alq.isSingleQueueEmpty(L2toL1C)) //L2 to L1C
 		{
+			QueueObject messageAndWait = alq.dequeue(L2toL1C);
+			String input = messageAndWait.getMessage();
+			messageAndWait.setWait(true);
+			
+			String[] split = input.trim().split(" ");
+			int Tag = Integer.parseInt(split[1].substring(0, 2));
+			int Index = Integer.parseInt(split[1].substring(2, 4));
+			
 			
 		}
 
@@ -129,7 +174,7 @@ public class L1CacheController extends Cache
 			//if in write buffer, then write to L1C
 			//else do nothing
 		writebuffer.check();
-		state = check_StateL1(index, tag);
+		state = check_HitL1(index, tag);
 		//debug the inputs to make sure they are working as expected
 		//row column tag index
 		switch (state)
@@ -182,7 +227,7 @@ public class L1CacheController extends Cache
 		States state;
 		victim.check(tag, index);
 		writebuffer.check();
-		state = check_StateL1(index, tag);//add way to look into write buffer and victim cache here
+		state = check_HitL1(index, tag);//add way to look into write buffer and victim cache here
 		//debug the inputs to make sure they are working as expected
 		//row column tag index
 		switch (state)
@@ -337,7 +382,7 @@ public class L1CacheController extends Cache
 		
 	}
 	
-	public static States check_HitL1(int index, int tag)
+	public static States check_StateL1(int index, int tag)
 	{
 		int numberValid = 0;
 		States states = null;
@@ -355,33 +400,33 @@ public class L1CacheController extends Cache
 					//check if it is a hit
 					states = States.HIT;
 					//COLUMN = i;
-					LRU.LRUHit(i);
+					transaction = LRU.LRUHit(i);
 					break;
 				}
 			}
 		}
-//		if(states != States.HIT)
-//		{
-//			if (numberValid != SET_SIZE) {
-//				states = States.MISSI;
-//				LRU.LRUMissI(numberValid);
-//			}
-//			else
-//			{
-//				int temp = LRU.LRUMissCD();
-//				if (L1C[index][temp].getClean())//change fifocounter[index]
-//				{
-//					states = States.MISSC;
-//		
-//				}
-//				else
-//				{
-//					states = States.MISSD;
-//				}
-//			//COLUMN = temp;
-//			}
-//			
-//		}
+		if(states != States.HIT)
+		{
+			if (numberValid != SET_SIZE) {
+				states = States.MISSI;
+				transaction = LRU.LRUMissI(numberValid);
+			}
+			else
+			{
+				transaction = LRU.LRUMissCD();
+				if (L1C[index][transaction].getClean())//change fifocounter[index]
+				{
+					states = States.MISSC;
+					
+				}
+				else
+				{
+					states = States.MISSD;
+				}
+			//COLUMN = temp;
+			}
+			
+		}
 		return states;
 	}//end of check state
 	

@@ -5,6 +5,7 @@ public class ControllerObject {
 	private static int Index;
 	private static boolean Valid;
 	private static boolean Clean;
+
 	
 	
 	
@@ -56,7 +57,7 @@ public class ControllerObject {
 		ControllerObject.Clean = clean;
 	}
 
-	
+
 	 
 	
 }//end of ControllerObject

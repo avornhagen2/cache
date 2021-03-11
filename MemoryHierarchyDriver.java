@@ -34,12 +34,13 @@ public class MemoryHierarchyDriver {
 		
 		//read from file
 		Scanner input = null;
-
+		QueueObject messageAndWait = null;
 		input = new Scanner(file);
 
 		while(input.hasNextLine())
 		{
-			alq.addToSpecificQueue(0, input.nextLine());
+			messageAndWait.setMessage(input.nextLine());
+			alq.enqueue(0, messageAndWait);//enqueue from CPU to L1C
 		}
 		
 		input.close();

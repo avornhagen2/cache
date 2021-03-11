@@ -14,7 +14,6 @@ public class LRU {
 	
 	public static int LRUMissCD()
 	{
-		int temp = maxSize - 1;
 		int header = LRU[0];
 		
 		for(int i = 0; i < maxSize - 1;i++)
@@ -25,8 +24,9 @@ public class LRU {
 		return header;
 	}
 	
-	public static void LRUMissI(int input)
+	public static int LRUMissI(int input)
 	{
+		
 		for(int i = 0; i < maxSize; i++)
 		{
 			if(LRU[i] == -1)
@@ -35,10 +35,10 @@ public class LRU {
 				break;
 			}
 		}
-		
+		return input;
 	}
 	
-	public static void LRUHit(int hitColumn)
+	public static int LRUHit(int hitColumn)
 	{
 		int temp = 0;
 		
@@ -57,7 +57,7 @@ public class LRU {
 		{
 			LRU[i] = LRU[i+1];
 		}
-		 
+		return temp;
 	}
 	
 	public static int tail()

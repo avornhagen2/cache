@@ -3,6 +3,7 @@ public class LineObject {
 
 	final int blockSize = 32;
 	String[] block = new String[blockSize];
+
 	//boolean clean = true;
 	
 	
@@ -36,20 +37,15 @@ public class LineObject {
 		
 	}
 
+
+
+
+
+
 	
 
 
-//	public boolean getClean() {
-//		return clean;
-//	}
-//
-//
-//
-//
-//	public void setClean(boolean clean) {
-//		this.clean = clean;
-//	}
-//	
+
 	
 	
 	
