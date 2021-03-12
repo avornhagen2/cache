@@ -3,7 +3,7 @@ import java.util.Arrays;
 public class LRU {
 
 	private static int maxSize;
-	public static int[] LRU;
+	public int[] LRU;
 	
 	public LRU(int maxSize)
 	{
@@ -12,7 +12,7 @@ public class LRU {
 		Arrays.fill(LRU,  -1);
 	}
 	
-	public static int LRUMissCD()
+	public int LRUMissCD()
 	{
 		int header = LRU[0];
 		
@@ -24,21 +24,22 @@ public class LRU {
 		return header;
 	}
 	
-	public static int LRUMissI(int input)
+	public int LRUMissI()
 	{
-		
+		int output = -1;
 		for(int i = 0; i < maxSize; i++)
 		{
 			if(LRU[i] == -1)
 			{
-				LRU[i] = input;
+				LRU[i] = i;
+				output = i;
 				break;
 			}
 		}
-		return input;
+		return output;
 	}
 	
-	public static int LRUHit(int hitColumn)
+	public int LRUHit(int hitColumn)
 	{
 		int temp = 0;
 		
@@ -60,15 +61,15 @@ public class LRU {
 		return temp;
 	}
 	
-	public static int tail()
+	public int tail()
 	{
 		return LRU[maxSize - 1];
 	}
 	
-	public static void victimLRU(int input)
-	{
-		LRUMissI(input);
-		
-	}
+//	public void victimLRU(int input)
+//	{
+//		LRUMissI();
+//		
+//	}
 	
 }//end of LRU

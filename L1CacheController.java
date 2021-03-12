@@ -27,7 +27,7 @@ public class L1CacheController extends Cache
 	static L1Data L1D = new L1Data(NUMBER_SETS,SET_SIZE);
 	static VictimCacheForL1 victim = new VictimCacheForL1();
 	static L2Cache L2;
-	static LRU[] lru = new LRU[NUMBER_SETS];
+	static LRU lru = new LRU(NUMBER_SETS);
 	
 	
 	//static int[] fifoCounter = new int[NUMBER_SETS];
@@ -54,6 +54,10 @@ public class L1CacheController extends Cache
 	//CPUWrite TAGindexOFFSET byteSize 19.20.21
 	
 	//CPURead 026005 8 1.2.3.4.5.6.7.8
+	//WriteBuffer 025 993 
+	//VictimCache 037 274
+	
+	//SendToL2 024 023
 	
 	/*
 	 * KEY FOR INDEXES OF QUEUES
@@ -400,7 +404,7 @@ public class L1CacheController extends Cache
 					//check if it is a hit
 					states = States.HIT;
 					//COLUMN = i;
-					transaction = LRU.LRUHit(i);
+					transaction = lru.LRUHit(i);
 					break;
 				}
 			}
@@ -409,11 +413,11 @@ public class L1CacheController extends Cache
 		{
 			if (numberValid != SET_SIZE) {
 				states = States.MISSI;
-				transaction = LRU.LRUMissI(numberValid);
+				transaction = lru.LRUMissI();
 			}
 			else
 			{
-				transaction = LRU.LRUMissCD();
+				transaction = lru.LRUMissCD();
 				if (L1C[index][transaction].getClean())//change fifocounter[index]
 				{
 					states = States.MISSC;

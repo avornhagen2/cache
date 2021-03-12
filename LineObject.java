@@ -1,7 +1,7 @@
 
 public class LineObject {
 
-	final int blockSize = 32;
+	final static int blockSize = 32;
 	String[] block = new String[blockSize];
 
 	//boolean clean = true;
@@ -33,9 +33,13 @@ public class LineObject {
 	}
 
 
-	public static void CheckForBits() {
-		
-	}
+//	public static String getAllBlockValues() {
+//		String temp = "";
+//		for(int i = 0; i < blockSize; i++)
+//		{
+//			
+//		}
+//	}
 
 
 

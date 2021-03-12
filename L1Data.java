@@ -54,7 +54,7 @@ public class L1Data {
 				int Tag = Integer.parseInt(split[1]);
 				int Index = Integer.parseInt(split[2]);
 				
-				writeBuffer.set(tag, index, data);
+				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][Tag], alq);
 				//set block to temp block
 				//move temp block to write buffer
 			}else if(operation == "VictimCache")
