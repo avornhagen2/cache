@@ -3,15 +3,16 @@ public class LineObject {
 
 	final static int blockSize = 32;
 	String[] block = new String[blockSize];
-
+	int Address;
+	
 	//boolean clean = true;
 	
 	
 	
-	public LineObject(String[] block) {
-		super();
-		this.block = block;
-	}
+//	public LineObject(String[] block) {
+//		super();
+//		this.block = block;
+//	}
 
 
 	
@@ -32,6 +33,29 @@ public class LineObject {
 		 block[value] = input;
 	}
 
+	public int getAddress()
+	{
+		return Address;
+	}
+	
+	public int getIndex(int setSize)
+	{
+		int Index;
+		Index = Address % setSize;
+		return Index;
+	}
+	
+	public int getTag(int setSize)
+	{
+		int Tag;
+		Tag = Address / setSize;
+		return Tag;
+	}
+	
+	public void setAddress(int input)
+	{
+		Address = input;
+	}
 
 //	public static String getAllBlockValues() {
 //		String temp = "";

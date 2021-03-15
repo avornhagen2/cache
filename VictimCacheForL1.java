@@ -7,7 +7,8 @@ public class VictimCacheForL1 extends Cache {
 	final int setSize = 2;
 	int[][] victimInstruction = new int[row][column];
 	LineObject[] victimData = new LineObject[setSize];
-	LRU[] lru = new LRU[row];
+	LRU lru = new LRU(row);
+	int[] tracking = new int[] {-1,-1};
 	
 	
 	
@@ -26,39 +27,96 @@ public class VictimCacheForL1 extends Cache {
 //		this.victimInstruction = victimInstruction;
 //	}
 //	
-	public void check(int tag, int index)
+	public void setVictimCacheValueDirectly(int Tag, int Index, LineObject data)
 	{
-		for(int i = 0; i < victimInstruction.length; i++)
+		if(isFull())
 		{
-			if(tag == victimInstruction[i][0] && index == victimInstruction[i][1])
-			{
-				//send to L1C and L1D
-				
-			}
+			
+			int record = lru.LRUMissCD();//make sure this works with static
+			
+			victimInstruction[record][0] = Tag; 
+			victimInstruction[record][1] = Index;
+			
+			victimData[record] = data;
+			
+			
+			
+		}else {
+			
+			int record = lru.LRUMissI();
+			
+			victimInstruction[record][0] = Tag; 
+			victimInstruction[record][1] = Index;
+			
+			victimData[record] = data;
 		}
 	}
 	
-	public void victimLRU()
+	public boolean checkValue(int Tag, int Index)
 	{
-		
+		boolean exists = false;
+		for(int i = 0; i < row; i++)
+		{
+			if(victimInstruction[i][0] == Tag && victimInstruction[i][1] == Index)
+			{
+				exists = true;
+			}
+		}
+		return exists;
 	}
 	
-	public void setVictimValue(int[] data, String[] data) {
-		victimInstruction[] = data;
-		victimData[index].setBlock(data);
+	public boolean isFull()
+	{
+		boolean full = true;
+		for(int i = 0; i < setSize; i++)
+		{
+			if(tracking[i] == -1)
+			{
+				full = false;
+				break;
+			}
+		}
+		return full;
 	}
 	
-	public LineObject[] getVictimData() {
-		return victimData;
+	public LineObject getVictimCacheValue(int Tag, int Index)
+	{
+		LineObject output = null;
+		for(int i = 0; i < row; i++)
+		{
+			if(victimInstruction[i][0] == Tag && victimInstruction[i][1] == Index)
+			{
+				output = victimData[i];
+				victimData[i] = new LineObject();
+				victimInstruction[i][0] = -1;
+				victimInstruction[i][1] = -1;
+				lru.LRUMissI();
+			}
+		}
+		return output;
 	}
 	
-//	public void setVictimData(LineObject[] victimData) {
-//		this.victimData = victimData;
+//	public void victimLRU()
+//	{
+//		
 //	}
-	
-	public void setVictimDataValue(int index, String[] data) {
-		victimData[index].setBlock(data);
-	}
+//	
+//	public void setVictimValue(int[] data, String[] data) {
+//		victimInstruction[] = data;
+//		victimData[index].setBlock(data);
+//	}
+//	
+//	public LineObject[] getVictimData() {
+//		return victimData;
+//	}
+//	
+////	public void setVictimData(LineObject[] victimData) {
+////		this.victimData = victimData;
+////	}
+//	
+//	public void setVictimDataValue(int index, String[] data) {
+//		victimData[index].setBlock(data);
+//	}
 	
 	
 	

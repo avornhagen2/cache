@@ -1,16 +1,22 @@
 
 public class L1Data {
 
-	//receive offset
+	final public static int NUMBER_SETS = 64;
 	//L1CacheController L1C = new L1CacheController();
 	private LineObject[][] L1D;
 	private WriteBuffersForL1AndL2 writeBuffer;
+	private VictimCacheForL1 victim;
 	final private static int L1CtoL1D = 1;
 	final private static int L1DtoL1C = 6;
+	ArrayListQueue alq;
 	//String[][][] L1D = new String[L1C.NUMBER_SETS][L1C.SET_SIZE][blockSize];
 	
+	public L1Data(ArrayListQueue alq)
+	{
+		this.alq = alq;
+	}
 	
-	public void run(ArrayListQueue alq)
+	public void run()
 	{
 		if(!alq.isSingleQueueEmpty(L1CtoL1D))
 		{
@@ -24,16 +30,22 @@ public class L1Data {
 			
 			if(operation == "CPURead")
 			{
-				int Tag = Integer.parseInt(split[1].substring(0, 2));
-				int Index = Integer.parseInt(split[1].substring(2, 4));
+				int Address = Integer.parseInt(split[1].substring(0, 4));
+				int Tag = Address / NUMBER_SETS;
+				int Index = Address % NUMBER_SETS; 
 				int Offset = Integer.parseInt(split[1].substring(4,6));
 				int byteSize = Integer.parseInt(split[2]);
+				
+
+				
 				
 				for(int i = Offset; i < byteSize + Offset;i++)
 				{
 					output = output + L1D[Index][Tag].getBlockValue(i);
 				}
 				
+				messageAndWait.setMessage("SendToCPU " + output);
+				alq.enqueue(L1DtoL1C, messageAndWait);
 				
 			}else if(operation == "CPUWrite")
 			{
@@ -48,13 +60,16 @@ public class L1Data {
 					//output = "Write Success";
 					L1D[Index][Tag].setBlockValue(data[i-Offset], i);
 				}
-			
+				
+				System.out.println("Write to L1D Success");
+				//we are not enqueueing on a write
+				
 			}else if(operation == "WriteBuffer")
 			{
 				int Tag = Integer.parseInt(split[1]);
 				int Index = Integer.parseInt(split[2]);
 				
-				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][Tag], alq);
+				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][Tag], "SendToL2");
 				//set block to temp block
 				//move temp block to write buffer
 			}else if(operation == "VictimCache")
@@ -62,7 +77,10 @@ public class L1Data {
 				int Tag = Integer.parseInt(split[1]);
 				int Index = Integer.parseInt(split[2]);
 				
+				victim.setVictimCacheValueDirectly(Tag, Index, L1D[Index][Tag]);
 			}
+			
+			
 		}
 	}
 	
@@ -80,8 +98,8 @@ public class L1Data {
 	}
 
 
-	public LineObject getL1D() {
-		return null;
+	public LineObject getL1DLineObject(int row, int column) {
+		return L1D[row][column];
 	}
 
 
@@ -97,7 +115,10 @@ public class L1Data {
 	}
 	
 
-
+//	public void setBlock()
+//	{
+//		
+//	}
 	
 	
 }//end of L1Data

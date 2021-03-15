@@ -2,6 +2,6 @@
 public class QueueObjectChild extends QueueObject{
 
 	
-	LineObject block = new LineObject(null);
+	LineObject block = new LineObject();
 	
 }//end of QueueObjectchild

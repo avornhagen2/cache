@@ -1,7 +1,7 @@
 
 public class MemoryStub {
 
-	final int setSize = 4000;//change this to exact amount
+	final int setSize = 4096;//change this to exact amount
 	final public int TAG = 64; //since index = 2^6, so the ideia is 64*tag + index// need to check
 	private LineObject[] DRAM = new LineObject[setSize];
 	//private LineObject current;

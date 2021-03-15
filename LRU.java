@@ -2,7 +2,7 @@ import java.util.Arrays;
 
 public class LRU {
 
-	private static int maxSize;
+	private int maxSize;
 	public int[] LRU;
 	
 	public LRU(int maxSize)
@@ -65,7 +65,8 @@ public class LRU {
 	{
 		return LRU[maxSize - 1];
 	}
-	
+
+
 //	public void victimLRU(int input)
 //	{
 //		LRUMissI();

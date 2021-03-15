@@ -5,6 +5,7 @@ public class CacheManager {
 	private int time;
 	CPUStub cpu = new CPUStub();
 	L1CacheController L1C;
+	L1Data L1D;
 	L2Cache L2 = new L2Cache();
 	MemoryStub memory = new MemoryStub();
 	private boolean flag = true;
@@ -33,7 +34,7 @@ public class CacheManager {
 			
 			//
 			
-			L1C.run(alq);
+			L1C.run();
 			L1D.run();
 			L2.run();
 			memory.run();

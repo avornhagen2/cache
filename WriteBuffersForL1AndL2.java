@@ -10,19 +10,36 @@ public class WriteBuffersForL1AndL2 {
 	//boolean notFull = false;
 	int[] tracking = new int[] {-1,-1};
 	final private static int L1DtoL1C = 6;
+	final private static int L2toDRAM = 3;
+	ArrayListQueue alq;
 	
-	public void setWriteBufferValue(int Tag, int Index, LineObject data, ArrayListQueue alq)
+	public WriteBuffersForL1AndL2(ArrayListQueue alq)
 	{
+		this.alq = alq;
+	}
+	
+	public void setWriteBufferValue(int Tag, int Index, LineObject data, String destination)
+	{
+		
 		if(isFull())
 		{
 			QueueObjectChild messageAndWait = new QueueObjectChild();
 			
 
-			messageAndWait.setMessage("SendToL2 " + Tag + " " + Index );
+			messageAndWait.setMessage(destination + " " + Tag + " " + Index );
 			messageAndWait.setWait(true);
 			int record = lru.LRUMissCD();//make sure this works with static
 			messageAndWait.block.setBlock(writeBufferData[record].getBlock());
-			alq.enqueue(L1DtoL1C, messageAndWait);	
+			
+			if(destination == "SendToL2")//make sure this works when debugging
+			{
+				alq.enqueue(L1DtoL1C, messageAndWait);
+			}else if(destination == "SendToDRAM")
+			{
+				alq.enqueue(L2toDRAM, messageAndWait);
+			}
+				
+			
 			
 			writeBufferInstruction[record][0] = Tag; 
 			writeBufferInstruction[record][1] = Index;
@@ -41,9 +58,57 @@ public class WriteBuffersForL1AndL2 {
 		}
 	}
 	
-	public void getWriteBufferValue()
+//	public void setWriteBufferDirectly(int Tag, int Index, LineObject data)
+//	{
+//		if(isFull())
+//		{
+//			
+//			int record = lru.LRUMissCD();//make sure this works with static
+//
+//			writeBufferInstruction[record][0] = Tag; 
+//			writeBufferInstruction[record][1] = Index;
+//			
+//			writeBufferData[record] = data;
+//
+//		}else {
+//			
+//			int record = lru.LRUMissI();
+//			
+//			writeBufferInstruction[record][0] = Tag; 
+//			writeBufferInstruction[record][1] = Index;
+//			
+//			writeBufferData[record] = data;
+//		}
+//	}
+	
+	public boolean checkValue(int Tag, int Index)
 	{
-		
+		boolean exists = false;
+		for(int i = 0; i < row; i++)
+		{
+			if(writeBufferInstruction[i][0] == Tag && writeBufferInstruction[i][1] == Index)
+			{
+				exists = true;
+			}
+		}
+		return exists;
+	}
+	
+	public LineObject getWriteBufferValue(int Tag, int Index)
+	{
+		LineObject output = null;
+		for(int i = 0; i < row; i++)
+		{
+			if(writeBufferInstruction[i][0] == Tag && writeBufferInstruction[i][1] == Index)
+			{
+				output = writeBufferData[i];
+				writeBufferData[i] = new LineObject();
+				writeBufferInstruction[i][0] = -1;
+				writeBufferInstruction[i][1] = -1;
+				lru.LRUMissI();
+			}
+		}
+		return output;
 	}
 	
 	public boolean isFull()
