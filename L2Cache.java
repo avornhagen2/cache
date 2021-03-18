@@ -17,7 +17,7 @@ public class L2Cache extends Cache {
 		this.alq = alq;
 	}
 	
-	public void run(ArrayListQueue alq)
+	public void run()
 	{
 		if(!alq.isSingleQueueEmpty(L1CtoL2))
 		{
@@ -53,38 +53,99 @@ public class L2Cache extends Cache {
 				
 				if(currentState == States.HIT)
 				{
-					messageAndWait.block.setBlock(L2[Index].block);
+					messageAndWait.block.setBlock(L2[Index].getBlock());
 					alq.enqueue(L2toL1C, messageAndWait);//on a hit we enqueue to L1D
 				}else if(currentState == States.MISSI)
 				{
-					alq.enqueue(L2toDRAM, messageAndWait);//on a miss we enqueue to DRAM
+					sendRequestToDRAM(input);
+					//alq.enqueue(L2toDRAM, messageAndWait);//on a miss we enqueue to DRAM
 				}else if(currentState == States.MISSD)
 				{
-					QueueObject writeBufferObject = new QueueObject();
+					
+					//COME BACK TO HERE
+					QueueObjectBus writeBufferObject = new QueueObjectBus();
 					writeBufferL2.setWriteBufferValue(Tag, Index, L2[Index], "SendToDRAM");
-					alq.enqueue(L2toDRAM, messageAndWait);//send request to L2 to get the data
+					sendRequestToDRAM(input);//send request to L2 to get the data
 				}else if(currentState == States.MISSC)
 				{
-					alq.enqueue(L2toDRAM, messageAndWait);//on a miss we enqueue to DRAM
+					sendRequestToDRAM(input);//on a miss we enqueue to DRAM
 				}
 			}
 		}
 		
+		//CPUWrite TAGindexOFFSET byteSize input.input.input 
+
+		
 		if(!alq.isSingleQueueEmpty(DRAMtoL2))
 		{
-			QueueObject messageAndWait = alq.dequeue(DRAMtoL2);
+			QueueObjectBus messageAndWait = (QueueObjectBus) alq.dequeue(DRAMtoL2);
 			String input = messageAndWait.getMessage();
+			int busNumber = messageAndWait.getBusNumber();
 			messageAndWait.setWait(true);
 			
 			String[] split = input.trim().split(" ");
-			int Tag = Integer.parseInt(split[1].substring(0, 2));
-			int Index = Integer.parseInt(split[1].substring(2, 4));
+			int Address = Integer.parseInt(split[1].substring(0, 4));
+			int Tag = Address / setSize;
+			int Index = Address % setSize; 
 			
-			if(split[0])
+			busSwitchCase(Index,busNumber,messageAndWait.getBusData());
+			
+			if(busNumber == 8)
+			{
+				QueueObjectChild finishedBus = new QueueObjectChild();
+				finishedBus.setMessage(messageAndWait.getMessage());
+				finishedBus.block.setBlock(L2[Index].getBlock());
+				alq.enqueue(L2toL1C, finishedBus);
+			}
+			
+			
 		}
 	}//end of run
 	
-
+	public void writeBusToL2(int Index, int offset, String[] busData)
+	{
+		
+		for(int i = offset; i < offset + busData.length; i++)
+		{
+			L2[Index].setBlockValue(busData[i - offset], i);
+		}
+	}
+	
+	public void busSwitchCase(int Index, int busNumber, String[] busData)
+	{
+		switch(busNumber)
+		{
+			case 1 :
+				writeBusToL2(Index,0,busData);
+				break;
+			case 2 :
+				writeBusToL2(Index,4,busData);
+				break;
+			case 3 :
+				writeBusToL2(Index,8,busData);
+				break;
+			case 4 :
+				writeBusToL2(Index,12,busData);
+				break;
+			case 5 :
+				writeBusToL2(Index,16,busData);
+				break;
+			case 6 :
+				writeBusToL2(Index,20,busData);
+				break;
+			case 7 :
+				writeBusToL2(Index,24,busData);
+				break;
+			case 8 :
+				writeBusToL2(Index,28,busData);
+				break;
+		}
+			
+				
+		
+	}
+	
+	
 	public States check_StateL2(int Tag, int Index)
 	{
 		States states = null;
@@ -141,5 +202,15 @@ public class L2Cache extends Cache {
 		}
 	}
 	
+	public void sendRequestToDRAM(String message)
+	{
+		for(int i = 0; i < 8; i++)
+		{
+			QueueObjectBus bus = new QueueObjectBus();
+			bus.setBusNumber(i);
+			bus.setMessage(message);
+			alq.enqueue(L2toDRAM, bus);
+		}
+	}
 	
 }//end of L2CacheController

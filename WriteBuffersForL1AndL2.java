@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 
 public class WriteBuffersForL1AndL2 {
 
@@ -36,7 +38,19 @@ public class WriteBuffersForL1AndL2 {
 				alq.enqueue(L1DtoL1C, messageAndWait);
 			}else if(destination == "SendToDRAM")
 			{
-				alq.enqueue(L2toDRAM, messageAndWait);
+				for(int i = 0; i < 8; i++)
+				{
+					QueueObjectBus bus = new QueueObjectBus();
+					bus.setBusNumber(i);
+					String[] block = new String[4];
+					for(int j = 0; j < 4; j++)
+					{
+						block[j] = data.getBlockValue(j + i * 4);
+					}
+					bus.setBusData(block);
+					bus.setMessage(messageAndWait.getMessage());
+					alq.enqueue(L2toDRAM, bus);
+				}
 			}
 				
 			

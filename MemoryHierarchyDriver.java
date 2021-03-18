@@ -20,15 +20,9 @@ public class MemoryHierarchyDriver {
 		
 		CacheManager scheduler = new CacheManager();
 		loadFileInput(args[0],scheduler.alq);
-		scheduler.runCycles();
+		scheduler.runCycles(args[0]);
 		
 	}//end of main
-	
-	
-	//cache manager method
-	public static void cacheManager() {
-		
-	}
 	
 	public static void loadFileInput(String file, ArrayListQueue alq) {
 		

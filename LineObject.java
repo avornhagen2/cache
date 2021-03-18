@@ -2,7 +2,7 @@
 public class LineObject {
 
 	final static int blockSize = 32;
-	String[] block = new String[blockSize];
+	private String[] block = new String[blockSize];
 	int Address;
 	
 	//boolean clean = true;

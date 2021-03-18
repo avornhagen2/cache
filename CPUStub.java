@@ -4,8 +4,18 @@ import java.util.ArrayList;
 import java.util.Queue;
 import java.util.Scanner;
 
+
+
 public class CPUStub {
 
+	final private static int L1CtoCPU = 7;
+	ArrayListQueue alq;
+	
+	public CPUStub(ArrayListQueue alq)
+	{
+		this.alq = alq;
+	}
+	
 	public static void cpuStubMessage() {
 		
 		System.out.println("This is our CPU that issues a sequence of loads and stores.");
@@ -13,33 +23,25 @@ public class CPUStub {
 	}//end of cpuStubMessage
 	
 	
-	//Get data from I/O
+	public void run()
+	{
+		if(!alq.isSingleQueueEmpty(L1CtoCPU))
+		{
+			QueueObject messageAndWait = alq.dequeue(L1CtoCPU);
+			String input = messageAndWait.getMessage();
+			
+			if(input == null || input == "")
+			{
+				System.out.println("bad message null or empty string");
+			}else {
+				System.out.println(input);
+			}
+			
+		}
+	}
 	
 	
-	//Send data to I/O
-	public static void sendOutputResults() {
-		
-		//stream indicating the messages that were executed by the different units
-		//value returned
-		//write to external file (ask prof about this)
-		//same format at input but what we receive from memory hierarchy
-		//write to text file
-		
-	}//sendOutputResults
-	
-	//Send data to L1 Controller
-	public static void storeFileInputInL1CacheController() {
-		
-		//enqueue to L1
-		
-	}//end of storeFileInputInL1CacheController
-	
-	//Get data from L1 Controller
-	public static void readInputL1CacheController() {
-		
-		//dequeue from L1
-		
-	}//end of readInputL1CacheController
+
 	
 	
 

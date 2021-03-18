@@ -2,8 +2,9 @@
 public class L1Data {
 
 	final public static int NUMBER_SETS = 64;
+	final public static int SET_SIZE = 4;
 	//L1CacheController L1C = new L1CacheController();
-	private LineObject[][] L1D;
+	private LineObject[][] L1D = new LineObject[NUMBER_SETS][SET_SIZE];
 	private WriteBuffersForL1AndL2 writeBuffer;
 	private VictimCacheForL1 victim;
 	final private static int L1CtoL1D = 1;

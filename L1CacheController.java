@@ -22,13 +22,11 @@ public class L1CacheController extends Cache
 	final public static int NUMBER_SETS = 64;
 	//final public int TAG = 6;
 	//static int COLUMN;
-	static ControllerObject L1C[][] = new ControllerObject[NUMBER_SETS][SET_SIZE];
-	static CPUStub CPU;
-	static L1Data L1D = new L1Data(NUMBER_SETS,SET_SIZE);//put inside the constructor
+	static ControllerObject L1C[][];// = new ControllerObject[NUMBER_SETS][SET_SIZE];
+	static L1Data L1D;// = new L1Data(NUMBER_SETS,SET_SIZE);//put inside the constructor
 	static VictimCacheForL1 victim = new VictimCacheForL1();
 	static ArrayListQueue alq;
 	WriteBuffersForL1AndL2 writeBuffer = new WriteBuffersForL1AndL2(alq);
-	static L2Cache L2;
 	static LRU lru = new LRU(NUMBER_SETS);
 	
 	
@@ -36,10 +34,11 @@ public class L1CacheController extends Cache
 	
 	
 	//static int[] fifoCounter = new int[NUMBER_SETS];
-	public L1CacheController (CPUStub CPUStub, L2Cache L2Cache, ArrayListQueue alq) {
-		CPU = CPUStub;
-		L2 = L2Cache;
+	public L1CacheController (ArrayListQueue alq, L1Data L1D) {
+		this.L1D = L1D;
 		this.alq = alq;
+		SET_SIZE = 4;
+		L1C = new ControllerObject[NUMBER_SETS][SET_SIZE];
 	}
 
 	
@@ -204,39 +203,39 @@ public class L1CacheController extends Cache
 			//do nothing
 		}else if(currentState == States.MISSI)
 		{
-			L1D.getL1DLineObject(Index, transaction).setBlock(data.block);
+			L1D.getL1DLineObject(Index, transaction).setBlock(data.getBlock());
 			L1C[Index][transaction].setTag(Tag);
 			L1C[Index][transaction].setIndex(Index);
 		}else if(currentState == States.MISSD)
 		{
 			writeBuffer.setWriteBufferValue(L1C[Index][transaction].getTag(), Index, L1D.getL1DLineObject(Index, transaction), "SendToL2");
-			L1D.getL1DLineObject(Index, transaction).setBlock(data.block);
+			L1D.getL1DLineObject(Index, transaction).setBlock(data.getBlock());
 			L1C[Index][transaction].setTag(Tag);
 		}else if(currentState == States.MISSC)
 		{
 			victim.setVictimCacheValueDirectly(L1C[Index][transaction].getTag(), Index, L1D.getL1DLineObject(Index, transaction));
-			L1D.getL1DLineObject(Index, transaction).setBlock(data.block);
+			L1D.getL1DLineObject(Index, transaction).setBlock(data.getBlock());
 			L1C[Index][transaction].setTag(Tag);
 		}
 	}
 	
-	public static void writeToL1FromVictimCache(int Tag, int Index, States currentState, LineObject data)
+	public void writeToL1FromVictimCache(int Tag, int Index, States currentState, LineObject data)
 	{
 		if(currentState == States.HIT)
 		{
 			//do nothing
 		}else if(currentState == States.MISSI)
 		{
-			L1D.getL1DLineObject(Index, transaction).setBlock(data.block);
+			L1D.getL1DLineObject(Index, transaction).setBlock(data.getBlock());
 		}else if(currentState == States.MISSD)
 		{
 			writeBuffer.setWriteBufferValue(L1C[Index][transaction].getTag(), Index, L1D.getL1DLineObject(Index, transaction), "SendToL2");
-			L1D.getL1DLineObject(Index, transaction).setBlock(data.block);
+			L1D.getL1DLineObject(Index, transaction).setBlock(data.getBlock());
 			L1C[Index][transaction].setTag(Tag);
 		}else if(currentState == States.MISSC)
 		{
 			victim.setVictimCacheValueDirectly(L1C[Index][transaction].getTag(), Index, L1D.getL1DLineObject(Index, transaction));
-			L1D.getL1DLineObject(Index, transaction).setBlock(data.block);
+			L1D.getL1DLineObject(Index, transaction).setBlock(data.getBlock());
 			L1C[Index][transaction].setTag(Tag);
 		}
 	}
