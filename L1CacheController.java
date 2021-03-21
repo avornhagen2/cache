@@ -82,7 +82,7 @@ public class L1CacheController extends Cache
 	
 	public void run()
 	{
-		if(!alq.isSingleQueueEmpty(CPUtoL1C))//CPU to L1C
+		if(!alq.isSingleQueueEmpty(CPUtoL1C) && alq.getHeadOfQueueWait(CPUtoL1C) == false)//CPU to L1C
 		{
 			QueueObject messageAndWait = alq.dequeue(CPUtoL1C);
 			String input = messageAndWait.getMessage();
@@ -149,7 +149,7 @@ public class L1CacheController extends Cache
 			
 		}
 		
-		if(!alq.isSingleQueueEmpty(L1DtoL1C)) //L1D to L1C
+		if(!alq.isSingleQueueEmpty(L1DtoL1C) && alq.getHeadOfQueueWait(L1DtoL1C) == false) //L1D to L1C
 		{
 			QueueObject messageAndWait = alq.dequeue(L1DtoL1C);
 			String input = messageAndWait.getMessage();
@@ -160,17 +160,17 @@ public class L1CacheController extends Cache
 			int Tag = Address / NUMBER_SETS;
 			int Index = Address % NUMBER_SETS; 
 			
-			if(split[0] == "SendToL2")
+			if(split[0].equals("SendToL2"))
 			{
 				alq.enqueue(L1CtoL2, messageAndWait);
-			}else if(split[0] == "SendToCPU")
+			}else if(split[0].equals("SendToCPU"))
 			{
 				alq.enqueue(L1CtoCPU, messageAndWait);
 			}
 		
 		}
 		
-		if(!alq.isSingleQueueEmpty(L2toL1C)) //L2 to L1C
+		if(!alq.isSingleQueueEmpty(L2toL1C) && alq.getHeadOfQueueWait(L2toL1C) == false) //L2 to L1C
 		{
 			QueueObject messageAndWait = alq.dequeue(L2toL1C);
 			String input = messageAndWait.getMessage();
@@ -180,11 +180,11 @@ public class L1CacheController extends Cache
 			int Tag = Integer.parseInt(split[1].substring(0, 2));
 			int Index = Integer.parseInt(split[1].substring(2, 4));
 			
-			if(split[0] == "CPURead")
+			if(split[0].equals("CPURead"))
 			{
 				alq.enqueue(L1CtoL1D, messageAndWait);
 				//send to CPU
-			}else if(split[0] == "CPUWrite")
+			}else if(split[0].equals("CPUWrite"))
 			{
 				alq.enqueue(L1CtoL1D, messageAndWait);
 			}
@@ -517,6 +517,19 @@ public class L1CacheController extends Cache
 		}
 		return states;
 	}//end of check state
+
+
+	public void populateL1C() {
+		for(int i = 0; i < 64; i++)
+		{
+			for(int j = 0; j < 4; j++)
+			{
+				ControllerObject temp = new ControllerObject(i, j, false, true);
+				L1C[i][j] = temp;
+			}
+			
+		}
+	}
 	
 }// end of class L1CacheController
 

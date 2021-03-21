@@ -13,11 +13,18 @@ public class MemoryStub {
 	public MemoryStub(ArrayListQueue alq)
 	{
 		this.alq = alq;
+//		DRAM = new LineObject[setSize];
+//		for(int i = 0; i < setSize; i++)
+//		{
+//			for(int j = 0; j < 32; j++) {
+//				DRAM[i].setBlockValue("0", j);
+//			}
+//		}
 	}
 
 	public void run()
 	{
-		if(!alq.isSingleQueueEmpty(L2toDRAM))
+		if(!alq.isSingleQueueEmpty(L2toDRAM) && alq.getHeadOfQueueWait(L2toDRAM) == false)
 		{
 			QueueObjectBus messageAndWait = (QueueObjectBus) alq.dequeue(L2toDRAM);//make sure that there are no nulls coming through here
 			String input = messageAndWait.getMessage();
@@ -27,10 +34,10 @@ public class MemoryStub {
 			int Address = Integer.parseInt(split[1].substring(0, 4));
 			int busNumber = messageAndWait.getBusNumber();
 
-			if(split[0] == "SendToDRAM")
+			if(split[0].equals("SendToDRAM"))
 			{
 				busSwitchCase(Address,busNumber,messageAndWait.getBusData());
-			}else if(split[0] == "CPURead" || split[0] == "CPUWrite")
+			}else if(split[0].equals("CPURead") || split[0].equals("CPUWrite"))
 			{
 				writeBusToL2(Address,busNumber,messageAndWait.getMessage());
 			}
@@ -40,7 +47,7 @@ public class MemoryStub {
 	public void writeBusToL2(int Index, int busNumber, String message)
 	{
 		QueueObjectBus bus = new QueueObjectBus();
-		String[] block = new String[4];
+		char[] block = new char[4];
 		for(int j = 0; j < 4; j++)
 		{
 			block[j] = DRAM[Index].getBlockValue(j + busNumber * 4);
@@ -50,38 +57,38 @@ public class MemoryStub {
 		alq.enqueue(DRAMtoL2, bus);
 	}
 	
-	public void busSwitchCase(int Index, int busNumber, String[] busData)
+	public void busSwitchCase(int Index, int busNumber, char[] busData)
 	{
 		switch(busNumber)
 		{
-			case 1 :
+			case 0 :
 				writeBusToDRAM(Index,0,busData);
 				break;
-			case 2 :
+			case 1 :
 				writeBusToDRAM(Index,4,busData);
 				break;
-			case 3 :
+			case 2 :
 				writeBusToDRAM(Index,8,busData);
 				break;
-			case 4 :
+			case 3 :
 				writeBusToDRAM(Index,12,busData);
 				break;
-			case 5 :
+			case 4 :
 				writeBusToDRAM(Index,16,busData);
 				break;
-			case 6 :
+			case 5 :
 				writeBusToDRAM(Index,20,busData);
 				break;
-			case 7 :
+			case 6 :
 				writeBusToDRAM(Index,24,busData);
 				break;
-			case 8 :
+			case 7 :
 				writeBusToDRAM(Index,28,busData);
 				break;
 		}
 	}
 
-	public void writeBusToDRAM(int Index, int offset, String[] busData)
+	public void writeBusToDRAM(int Index, int offset, char[] busData)
 	{
 		
 		for(int i = offset; i < offset + busData.length; i++)
@@ -90,7 +97,18 @@ public class MemoryStub {
 		}
 	}
 	
-	
+	public void populateDRAM()
+	{
+		//LineObject[] temp = new LineObject[setSize];
+		for(int i = 0; i < setSize; i++)
+		{
+			LineObject temp = new LineObject();
+			temp.populateLineObject();
+			DRAM[i] = temp;
+		}
+		
+	}
+
 //	public LineObject getBlock(int index, int tag)
 //	{
 //		int row = tag * TAG + index;

@@ -13,7 +13,12 @@ public class QueueObject {
 		this.wait = wait;
 	}
 	public String getMessage() {
-		return message;
+		if(message == null)
+		{
+			return "";
+		}else {
+			return message;
+		}
 	}
 	public void setMessage(String message) {
 		this.message = message;

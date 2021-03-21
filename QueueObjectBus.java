@@ -2,7 +2,7 @@
 public class QueueObjectBus extends QueueObject{
 
 	private int busNumber;
-	private String[] busData = new String[4];
+	private char[] busData = new char[4];
 	
 	public int getBusNumber() {
 		return busNumber;
@@ -10,10 +10,10 @@ public class QueueObjectBus extends QueueObject{
 	public void setBusNumber(int busNumber) {
 		this.busNumber = busNumber;
 	}
-	public String[] getBusData() {
+	public char[] getBusData() {
 		return busData;
 	}
-	public void setBusData(String[] busData) {
+	public void setBusData(char[] busData) {
 		this.busData = busData;
 	}
 	

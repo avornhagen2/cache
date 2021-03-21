@@ -19,9 +19,9 @@ public class L2Cache extends Cache {
 	
 	public void run()
 	{
-		if(!alq.isSingleQueueEmpty(L1CtoL2))
+		if(!alq.isSingleQueueEmpty(L1CtoL2) && alq.getHeadOfQueueWait(L1CtoL2) == false)
 		{
-			QueueObjectChild messageAndWait = (QueueObjectChild) alq.dequeue(L1CtoL2);//make sure that there are no nulls coming through here
+			QueueObject messageAndWait = alq.dequeue(L1CtoL2);//make sure that there are no nulls coming through here
 			String input = messageAndWait.getMessage();
 			messageAndWait.setWait(true);
 			
@@ -31,17 +31,17 @@ public class L2Cache extends Cache {
 			int Index = Address % setSize; 
 			
 			
-			if(split[0] == "SendToL2")
+			if(split[0].contentEquals("SendToL2"))
 			{
 				 //Index % 512;
 				if(L2[Index].getAddress() == Address )
 				{
-					L2[Index].setBlock(messageAndWait.block.getBlock());
+					L2[Index].setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
 				}else
 				{
 					System.out.println("Error: L2 Cache write buffer");
 				}
-			}else if(split[0] == "CPURead" || split[0] == "CPUWrite")
+			}else if(split[0].equals("CPURead")  || split[0].equals("CPUWrite"))
 			{
 				States currentState = check_StateL2(Index, Tag);
 				
@@ -53,7 +53,7 @@ public class L2Cache extends Cache {
 				
 				if(currentState == States.HIT)
 				{
-					messageAndWait.block.setBlock(L2[Index].getBlock());
+					((QueueObjectChild)messageAndWait).block.setBlock(L2[Index].getBlock());
 					alq.enqueue(L2toL1C, messageAndWait);//on a hit we enqueue to L1D
 				}else if(currentState == States.MISSI)
 				{
@@ -76,7 +76,7 @@ public class L2Cache extends Cache {
 		//CPUWrite TAGindexOFFSET byteSize input.input.input 
 
 		
-		if(!alq.isSingleQueueEmpty(DRAMtoL2))
+		if(!alq.isSingleQueueEmpty(DRAMtoL2) && alq.getHeadOfQueueWait(DRAMtoL2) == false)
 		{
 			QueueObjectBus messageAndWait = (QueueObjectBus) alq.dequeue(DRAMtoL2);
 			String input = messageAndWait.getMessage();
@@ -102,7 +102,7 @@ public class L2Cache extends Cache {
 		}
 	}//end of run
 	
-	public void writeBusToL2(int Index, int offset, String[] busData)
+	public void writeBusToL2(int Index, int offset, char[] busData)
 	{
 		
 		for(int i = offset; i < offset + busData.length; i++)
@@ -111,32 +111,32 @@ public class L2Cache extends Cache {
 		}
 	}
 	
-	public void busSwitchCase(int Index, int busNumber, String[] busData)
+	public void busSwitchCase(int Index, int busNumber, char[] busData)
 	{
 		switch(busNumber)
 		{
-			case 1 :
+			case 0 :
 				writeBusToL2(Index,0,busData);
 				break;
-			case 2 :
+			case 1 :
 				writeBusToL2(Index,4,busData);
 				break;
-			case 3 :
+			case 2 :
 				writeBusToL2(Index,8,busData);
 				break;
-			case 4 :
+			case 3 :
 				writeBusToL2(Index,12,busData);
 				break;
-			case 5 :
+			case 4 :
 				writeBusToL2(Index,16,busData);
 				break;
-			case 6 :
+			case 5 :
 				writeBusToL2(Index,20,busData);
 				break;
-			case 7 :
+			case 6 :
 				writeBusToL2(Index,24,busData);
 				break;
-			case 8 :
+			case 7 :
 				writeBusToL2(Index,28,busData);
 				break;
 		}
@@ -209,7 +209,20 @@ public class L2Cache extends Cache {
 			QueueObjectBus bus = new QueueObjectBus();
 			bus.setBusNumber(i);
 			bus.setMessage(message);
+			bus.setWait(true);
 			alq.enqueue(L2toDRAM, bus);
+		}
+	}
+
+	public void populateL2() {
+		
+		for(int i = 0; i < setSize; i++)
+		{
+			LineObject temp = new LineObject();
+			ControllerObject temp2 = new ControllerObject(i, 0, false, true);
+			temp.populateLineObject();
+			L2C[i] = temp2;
+			L2[i] = temp;
 		}
 	}
 	

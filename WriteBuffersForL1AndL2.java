@@ -42,7 +42,7 @@ public class WriteBuffersForL1AndL2 {
 				{
 					QueueObjectBus bus = new QueueObjectBus();
 					bus.setBusNumber(i);
-					String[] block = new String[4];
+					char[] block = new char[4];
 					for(int j = 0; j < 4; j++)
 					{
 						block[j] = data.getBlockValue(j + i * 4);

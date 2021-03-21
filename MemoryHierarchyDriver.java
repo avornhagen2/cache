@@ -13,31 +13,42 @@ import java.util.Scanner;
 *****************************************************/
 public class MemoryHierarchyDriver {
 
-	
+	final private static int CPUtoL1C = 0;
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		
 		CacheManager scheduler = new CacheManager();
 		loadFileInput(args[0],scheduler.alq);
-		scheduler.runCycles(args[0]);
+		scheduler.runCycles(args[1]);
 		
 	}//end of main
 	
 	public static void loadFileInput(String file, ArrayListQueue alq) {
 		
 		//read from file
-		Scanner input = null;
-		QueueObject messageAndWait = null;
-		input = new Scanner(file);
-
-		while(input.hasNextLine())
-		{
-			messageAndWait.setMessage(input.nextLine());
-			alq.enqueue(0, messageAndWait);//enqueue from CPU to L1C
+		try {
+			File myFile = new File(file);
+			Scanner scannerReadFile = new Scanner(myFile);
+			//Scanner input = null;
+			QueueObject messageAndWait = new QueueObject();
+			//input = new Scanner(file);
+			
+			while(scannerReadFile.hasNextLine())
+			{
+				String input = scannerReadFile.nextLine();
+				messageAndWait.setMessage(input);
+				alq.enqueue(CPUtoL1C, messageAndWait);//enqueue from CPU to L1C
+			}
+			
+			scannerReadFile.close();
+		}catch (FileNotFoundException e){
+			System.out.println("Memory Hierarchy: The file could not be found.");
+			e.printStackTrace();
 		}
 		
-		input.close();
+
+		
 
 		//first part is instruction, second part is location(memory address), third part is size(number of bytes)
 

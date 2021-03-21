@@ -19,7 +19,7 @@ public class L1Data {
 	
 	public void run()
 	{
-		if(!alq.isSingleQueueEmpty(L1CtoL1D))
+		if(!alq.isSingleQueueEmpty(L1CtoL1D) && alq.getHeadOfQueueWait(L1CtoL1D) == false)
 		{
 			QueueObject messageAndWait = alq.dequeue(L1CtoL1D);
 			String input = messageAndWait.getMessage();
@@ -29,7 +29,7 @@ public class L1Data {
 			String operation = split[0];
 			String output = "";
 			
-			if(operation == "CPURead")
+			if(operation.equals("CPURead"))
 			{
 				int Address = Integer.parseInt(split[1].substring(0, 4));
 				int Tag = Address / NUMBER_SETS;
@@ -48,13 +48,13 @@ public class L1Data {
 				messageAndWait.setMessage("SendToCPU " + output);
 				alq.enqueue(L1DtoL1C, messageAndWait);
 				
-			}else if(operation == "CPUWrite")
+			}else if(operation.equals("CPUWrite"))
 			{
 				int Tag = Integer.parseInt(split[1].substring(0, 2));
 				int Index = Integer.parseInt(split[1].substring(2, 4));
 				int Offset = Integer.parseInt(split[1].substring(4,6));
 				int byteSize = Integer.parseInt(split[2]);
-				String[] data = split[3].trim().split(".");
+				char[] data = split[3].toCharArray();
 				
 				for(int i = Offset; i < data.length + Offset; i++)
 				{
@@ -65,7 +65,7 @@ public class L1Data {
 				System.out.println("Write to L1D Success");
 				//we are not enqueueing on a write
 				
-			}else if(operation == "WriteBuffer")
+			}else if(operation.equals("WriteBuffer"))
 			{
 				int Tag = Integer.parseInt(split[1]);
 				int Index = Integer.parseInt(split[2]);
@@ -73,7 +73,7 @@ public class L1Data {
 				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][Tag], "SendToL2");
 				//set block to temp block
 				//move temp block to write buffer
-			}else if(operation == "VictimCache")
+			}else if(operation.equals("VictimCache"))
 			{
 				int Tag = Integer.parseInt(split[1]);
 				int Index = Integer.parseInt(split[2]);
@@ -93,7 +93,7 @@ public class L1Data {
 
 
 
-	public void setL1DValue(String input, int row, int column,int offset) {
+	public void setL1DValue(char input, int row, int column,int offset) {
 		
 		L1D[row][column].setBlockValue(input,offset);
 	}
@@ -106,13 +106,25 @@ public class L1Data {
 
 
 
-	public String getL1DValue (int row, int column, int byteIndex){
+	public char getL1DValue (int row, int column, int byteIndex){
 		return L1D[row][column].getBlock()[byteIndex];
 	}
 
-	public String[] getL1DBlock(int row, int column) {
+	public char[] getL1DBlock(int row, int column) {
 		
 		return L1D[row][column].getBlock();
+	}
+
+	public void populateL1D() {
+		for(int i = 0; i < NUMBER_SETS; i++)
+		{
+			for(int j = 0; j < SET_SIZE; j++)
+			{
+				LineObject temp = new LineObject();
+				temp.populateLineObject();
+				L1D[i][j] = temp;
+			}
+		}
 	}
 	
 

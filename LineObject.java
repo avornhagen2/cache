@@ -2,7 +2,7 @@
 public class LineObject {
 
 	final static int blockSize = 32;
-	private String[] block = new String[blockSize];
+	private char[] block = new char[blockSize];
 	int Address;
 	
 	//boolean clean = true;
@@ -15,21 +15,20 @@ public class LineObject {
 //	}
 
 
-	
 
-	public String[] getBlock() {
+	public char[] getBlock() {
 		return block;
 	}
 
-	public String getBlockValue(int byteNumber) {
+	public char getBlockValue(int byteNumber) {
 		return block[byteNumber];
 	}
 
-	public void setBlock(String[] bytes) {
+	public void setBlock(char[] bytes) {
 		this.block = block;
 	}
 
-	public void setBlockValue(String input, int value) {
+	public void setBlockValue(char input, int value) {
 		 block[value] = input;
 	}
 
@@ -57,14 +56,14 @@ public class LineObject {
 		Address = input;
 	}
 
-//	public static String getAllBlockValues() {
-//		String temp = "";
-//		for(int i = 0; i < blockSize; i++)
-//		{
-//			
-//		}
-//	}
 
+	public void populateLineObject()
+	{
+		for(int i = 0; i < 32; i++)
+		{
+			block[i] = '1';
+		}
+	}
 
 
 
