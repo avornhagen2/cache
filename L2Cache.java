@@ -7,7 +7,7 @@ public class L2Cache extends Cache {
 	final private static int L1CtoL2 = 2;
 	final private static int L2toL1C = 5;
 	final private static int L2toDRAM = 3;
-	final private int DRAMtoL2 = 4;
+	final private static int DRAMtoL2 = 4;
 	LineObject[] L2 = new LineObject[setSize];
 	ControllerObject[] L2C = new ControllerObject[setSize];
 	WriteBuffersForL1AndL2 writeBufferL2 = new WriteBuffersForL1AndL2(alq);
@@ -57,7 +57,7 @@ public class L2Cache extends Cache {
 					alq.enqueue(L2toL1C, messageAndWait);//on a hit we enqueue to L1D
 				}else if(currentState == States.MISSI)
 				{
-					sendRequestToDRAM(input);
+					sendRequestToDRAM(input,messageAndWait.getTransactionL1());
 					//alq.enqueue(L2toDRAM, messageAndWait);//on a miss we enqueue to DRAM
 				}else if(currentState == States.MISSD)
 				{
@@ -65,10 +65,10 @@ public class L2Cache extends Cache {
 					//COME BACK TO HERE
 					QueueObjectBus writeBufferObject = new QueueObjectBus();
 					writeBufferL2.setWriteBufferValue(Tag, Index, L2[Index], "SendToDRAM");
-					sendRequestToDRAM(input);//send request to L2 to get the data
+					sendRequestToDRAM(input,messageAndWait.getTransactionL1());//send request to L2 to get the data
 				}else if(currentState == States.MISSC)
 				{
-					sendRequestToDRAM(input);//on a miss we enqueue to DRAM
+					sendRequestToDRAM(input,messageAndWait.getTransactionL1());//on a miss we enqueue to DRAM
 				}
 			}
 		}
@@ -90,10 +90,11 @@ public class L2Cache extends Cache {
 			
 			busSwitchCase(Index,busNumber,messageAndWait.getBusData());
 			
-			if(busNumber == 8)
+			if(busNumber == 7)
 			{
-				QueueObjectChild finishedBus = new QueueObjectChild();
+				QueueObjectChild finishedBus = new QueueObjectChild(32);
 				finishedBus.setMessage(messageAndWait.getMessage());
+				finishedBus.setTransactionL1(messageAndWait.getTransactionL1());
 				finishedBus.block.setBlock(L2[Index].getBlock());
 				alq.enqueue(L2toL1C, finishedBus);
 			}
@@ -115,29 +116,37 @@ public class L2Cache extends Cache {
 	{
 		switch(busNumber)
 		{
-			case 0 :
-				writeBusToL2(Index,0,busData);
+			case 0 ://COME BACK AND CHANGE THIS TO BUSDATA
+				char[] c = {'r','n','w','p'};
+				writeBusToL2(Index,0,c);
 				break;
 			case 1 :
-				writeBusToL2(Index,4,busData);
+				char[] v = {'r','n','w','p'};
+				writeBusToL2(Index,4,v);
 				break;
 			case 2 :
-				writeBusToL2(Index,8,busData);
+				char[] b = {'r','n','w','p'};
+				writeBusToL2(Index,8,b);
 				break;
 			case 3 :
-				writeBusToL2(Index,12,busData);
+				char[] n = {'r','n','w','p'};
+				writeBusToL2(Index,12,n);
 				break;
 			case 4 :
-				writeBusToL2(Index,16,busData);
+				char[] m = {'r','n','w','p'};
+				writeBusToL2(Index,16,m);
 				break;
 			case 5 :
-				writeBusToL2(Index,20,busData);
+				char[] a = {'r','n','w','p'};
+				writeBusToL2(Index,20,a);
 				break;
 			case 6 :
-				writeBusToL2(Index,24,busData);
+				char[] s = {'r','n','w','p'};
+				writeBusToL2(Index,24,s);
 				break;
 			case 7 :
-				writeBusToL2(Index,28,busData);
+				char[] d = {'r','n','w','p'};
+				writeBusToL2(Index,28,d);
 				break;
 		}
 			
@@ -202,11 +211,12 @@ public class L2Cache extends Cache {
 		}
 	}
 	
-	public void sendRequestToDRAM(String message)
+	public void sendRequestToDRAM(String message, int transactionL1)
 	{
 		for(int i = 0; i < 8; i++)
 		{
 			QueueObjectBus bus = new QueueObjectBus();
+			bus.setTransactionL1(transactionL1);
 			bus.setBusNumber(i);
 			bus.setMessage(message);
 			bus.setWait(true);
@@ -218,7 +228,7 @@ public class L2Cache extends Cache {
 		
 		for(int i = 0; i < setSize; i++)
 		{
-			LineObject temp = new LineObject();
+			LineObject temp = new LineObject(32);
 			ControllerObject temp2 = new ControllerObject(i, 0, false, true);
 			temp.populateLineObject();
 			L2C[i] = temp2;

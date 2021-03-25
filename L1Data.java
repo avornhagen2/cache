@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 
 public class L1Data {
 
@@ -10,11 +11,14 @@ public class L1Data {
 	final private static int L1CtoL1D = 1;
 	final private static int L1DtoL1C = 6;
 	ArrayListQueue alq;
+	ArrayList<Integer> busyAddresses;
+
 	//String[][][] L1D = new String[L1C.NUMBER_SETS][L1C.SET_SIZE][blockSize];
 	
-	public L1Data(ArrayListQueue alq)
+	public L1Data(ArrayListQueue alq, ArrayList<Integer> busyAddresses)
 	{
 		this.alq = alq;
+		this.busyAddresses = busyAddresses;
 	}
 	
 	public void run()
@@ -29,66 +33,96 @@ public class L1Data {
 			String operation = split[0];
 			String output = "";
 			
+			int Address = Integer.parseInt(split[1].substring(0, 4));
+			int Tag = Address / NUMBER_SETS;
+			int Index = Address % NUMBER_SETS; 
+			int Offset = Integer.parseInt(split[1].substring(4,6));
+			int byteSize = Integer.parseInt(split[2]);
+			
 			if(operation.equals("CPURead"))
 			{
-				int Address = Integer.parseInt(split[1].substring(0, 4));
-				int Tag = Address / NUMBER_SETS;
-				int Index = Address % NUMBER_SETS; 
-				int Offset = Integer.parseInt(split[1].substring(4,6));
-				int byteSize = Integer.parseInt(split[2]);
-				
-
-				
+				QueueObjectChild qoc = new QueueObjectChild(byteSize);
 				
 				for(int i = Offset; i < byteSize + Offset;i++)
 				{
-					output = output + L1D[Index][Tag].getBlockValue(i);
+					//output = output + L1D[Index][messageAndWait.getTransactionL1()].getBlockValue(i);
+					qoc.block.setBlockValue(L1D[Index][messageAndWait.getTransactionL1()].getBlockValue(i), i - Offset);
 				}
 				
-				messageAndWait.setMessage("SendToCPU " + output);
-				alq.enqueue(L1DtoL1C, messageAndWait);
+				qoc.setMessage(messageAndWait.getMessage());
+				alq.enqueue(L1DtoL1C, qoc);
+				busyAddresses.remove(busyAddresses.indexOf(Address));
 				
 			}else if(operation.equals("CPUWrite"))
 			{
-				int Tag = Integer.parseInt(split[1].substring(0, 2));
-				int Index = Integer.parseInt(split[1].substring(2, 4));
-				int Offset = Integer.parseInt(split[1].substring(4,6));
-				int byteSize = Integer.parseInt(split[2]);
-				char[] data = split[3].toCharArray();
 				
-				for(int i = Offset; i < data.length + Offset; i++)
+				if(messageAndWait instanceof QueueObjectChild)
 				{
-					//output = "Write Success";
-					L1D[Index][Tag].setBlockValue(data[i-Offset], i);
+					for(int i = Offset; i < Offset + byteSize; i++)
+					{
+						//output = "Write Success";
+						L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(((QueueObjectChild) messageAndWait).block.getBlockValue(i-Offset), i);
+						
+					}
+				}else {
+					char[] data = split[3].toCharArray(); 
+					for(int i = Offset; i < Offset + byteSize; i++)
+					{
+						//output = "Write Success";
+						L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(data[i - Offset], i);
+						
+					}
 				}
 				
-				System.out.println("Write to L1D Success");
+				busyAddresses.remove(busyAddresses.indexOf(Address));
+				//alq.enqueue(L1DtoL1C, messageAndWait);//???
+				//System.out.println("Write to L1D Success");
 				//we are not enqueueing on a write
 				
 			}else if(operation.equals("WriteBuffer"))
 			{
-				int Tag = Integer.parseInt(split[1]);
-				int Index = Integer.parseInt(split[2]);
-				
 				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][Tag], "SendToL2");
-				//set block to temp block
-				//move temp block to write buffer
 			}else if(operation.equals("VictimCache"))
-			{
-				int Tag = Integer.parseInt(split[1]);
-				int Index = Integer.parseInt(split[2]);
-				
+			{	
 				victim.setVictimCacheValueDirectly(Tag, Index, L1D[Index][Tag]);
+			}else if(operation.equals("UpdateReadL1"))
+			{
+				
+				
+				for(int i = Offset; i < Offset + byteSize; i++)
+				{
+					//output = "Write Success";
+					L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(((QueueObjectChild)messageAndWait).block.getBlockValue(i-Offset), i);
+				}
+				
+				busyAddresses.remove(busyAddresses.indexOf(Address));
+				//System.out.println("Write to L1D Success");
+				//we are not enqueueing on a write
+				
+			}else if(operation.equals("UpdateWriteL1"))
+			{
+				
+				
+				for(int i = Offset; i < Offset + byteSize; i++)
+				{
+					//output = "Write Success";
+					L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(((QueueObjectChild)messageAndWait).block.getBlockValue(i-Offset), i);
+				}
+				
+				//alq.enqueue(L1DtoL1C, messageAndWait);//???
+				//System.out.println("Write to L1D Success");
+				//we are not enqueueing on a write
+				busyAddresses.remove(busyAddresses.indexOf(Address));
 			}
 			
 			
 		}
 	}
 	
-	public L1Data(int numberOfSets, int setSize) {
-		super();
-		L1D = new LineObject[numberOfSets][setSize];
-	}
+//	public L1Data(int numberOfSets, int setSize) {
+//		super();
+//		L1D = new LineObject[numberOfSets][setSize];
+//	}
 	
 
 
@@ -120,7 +154,7 @@ public class L1Data {
 		{
 			for(int j = 0; j < SET_SIZE; j++)
 			{
-				LineObject temp = new LineObject();
+				LineObject temp = new LineObject(32);
 				temp.populateLineObject();
 				L1D[i][j] = temp;
 			}

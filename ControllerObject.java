@@ -1,10 +1,11 @@
 
 public class ControllerObject {
 
-	private static int Tag;
-	private static int Index;
-	private static boolean Valid;
-	private static boolean Clean;
+	private int Tag;
+	private int Index;
+	private boolean Valid;
+	private boolean Clean;
+	private boolean busy;
 
 	
 	
@@ -15,6 +16,7 @@ public class ControllerObject {
 		Index = index;
 		Valid = valid;
 		Clean = clean;
+		busy = false;
 	}//end of constructor
 
 
@@ -54,7 +56,7 @@ public class ControllerObject {
 
 
 	public void setClean(boolean clean) {
-		ControllerObject.Clean = clean;
+		Clean = clean;
 	}
 
 

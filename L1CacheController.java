@@ -8,7 +8,7 @@ public class L1CacheController extends Cache
 {	
 	
 	
-	public static int transaction = -1;
+	public int transaction = -1;
 	//we are going to be using FIFO for replacing data
 	public ControllerObject Address;
 	final private static int CPUtoL1C = 0;
@@ -17,9 +17,7 @@ public class L1CacheController extends Cache
 	final private static int L2toL1C = 5;
 	final private static int L1DtoL1C = 6;
 	final private static int L1CtoCPU = 7;
-	//final public static int SET_SIZE = 4;
-	//final public int INDEX = 6;
-	final public static int NUMBER_SETS = 64;
+	//final public int INDEX = 6; 
 	//final public int TAG = 6;
 	//static int COLUMN;
 	static ControllerObject L1C[][];// = new ControllerObject[NUMBER_SETS][SET_SIZE];
@@ -27,18 +25,22 @@ public class L1CacheController extends Cache
 	static VictimCacheForL1 victim = new VictimCacheForL1();
 	static ArrayListQueue alq;
 	WriteBuffersForL1AndL2 writeBuffer = new WriteBuffersForL1AndL2(alq);
-	static LRU lru = new LRU(NUMBER_SETS);
-	
+	LRU lru;
+	ArrayList<String> InstructionsL1 = new ArrayList<String>();
+	ArrayList<Integer> busyAddresses;// = new ArrayList<Integer>();
 	
 	
 	
 	
 	//static int[] fifoCounter = new int[NUMBER_SETS];
-	public L1CacheController (ArrayListQueue alq, L1Data L1D) {
+	public L1CacheController (ArrayListQueue alq, L1Data L1D, ArrayList<Integer> busyAddresses) {
 		this.L1D = L1D;
 		this.alq = alq;
 		SET_SIZE = 4;
+		NUMBER_SETS = 64;
 		L1C = new ControllerObject[NUMBER_SETS][SET_SIZE];
+		this.busyAddresses = busyAddresses;
+		lru = new LRU(SET_SIZE);
 	}
 
 	
@@ -82,59 +84,100 @@ public class L1CacheController extends Cache
 	
 	public void run()
 	{
-		if(!alq.isSingleQueueEmpty(CPUtoL1C) && alq.getHeadOfQueueWait(CPUtoL1C) == false)//CPU to L1C
-		{
-			QueueObject messageAndWait = alq.dequeue(CPUtoL1C);
-			String input = messageAndWait.getMessage();
-			messageAndWait.setWait(true);
+		if(!alq.isSingleQueueEmpty(CPUtoL1C)  && alq.getHeadOfQueueWait(CPUtoL1C) == false) {
 			
-			String[] split = input.trim().split(" ");
-			int Address = Integer.parseInt(split[1].substring(0, 4));
-			int Tag = Address / NUMBER_SETS;
-			int Index = Address % NUMBER_SETS; 
-			
-			States currentState = check_StateL1(Index, Tag);
-			
-			if(writeBuffer.checkValue(Tag,Index))
-			{
-				writeToL1FromWriteBuffer(Tag, Index, currentState, writeBuffer.getWriteBufferValue(Tag,Index));
-				currentState = check_StateL1(Index, Tag);
-			}
-			
-			if(victim.checkValue(Tag,Index))
-			{
-				victim.getVictimCacheValue(Tag, Index);
-				currentState = check_StateL1(Index, Tag);
-			}
+			InstructionsL1.add(alq.dequeue(CPUtoL1C).getMessage());
+		}
 		
+		
+		
+		
+		if(!InstructionsL1.isEmpty())//CPU to L1C
+		{
 			
-			//States currentState = check_StateL1(Index, Tag);
-			
+			boolean flag = true;
+			int i = 0;
+			int Address = 0;
+			String message = "";
+			QueueObject messageAndWait = new QueueObject();
+			while(flag && i < 8)
+			{
+				if(InstructionsL1.size()-1 < i)
+				{
+					flag = false;
+				}else {
+					message = InstructionsL1.get(i);
+					String[] splitInstructions = message.trim().split(" ");
+					Address = Integer.parseInt(splitInstructions[1].substring(0, 4));
+					if(!busyAddresses.contains(Address))
+					{
+						busyAddresses.add(Address);
+						messageAndWait.setMessage(message);
+						messageAndWait.setWait(true);
+						InstructionsL1.remove(i);
+						flag = false;
+						
+						
+						//String[] split = message.trim().split(" ");
+						//int Address = Integer.parseInt(split[1].substring(0, 4));
+						int Tag = Address / NUMBER_SETS;
+						int Index = Address % NUMBER_SETS; 
+						
+						States currentState = check_StateL1(Index, Tag);
+						
+						if(writeBuffer.checkValue(Tag,Index))
+						{
+							writeToL1FromWriteBuffer(Tag, Index, currentState, writeBuffer.getWriteBufferValue(Tag,Index));
+							currentState = check_StateL1(Index, Tag);
+						}
+						
+						if(victim.checkValue(Tag,Index))
+						{
+							victim.getVictimCacheValue(Tag, Index);
+							currentState = check_StateL1(Index, Tag);
+						}
+					
+						
+						//currentState = check_StateL1(Index, Tag);
+						messageAndWait.setTransactionL1(transaction);
 
-			if(currentState == States.HIT)
-			{
-				alq.enqueue(L1CtoL1D, messageAndWait);//on a hit we enqueue to L1D
-			}else if(currentState == States.MISSI)
-			{
-				messageAndWait.setTransactionL1(transaction);
-				alq.enqueue(L1CtoL2, messageAndWait);//on a miss we enqueue to L2
-			}else if(currentState == States.MISSD)
-			{
-				QueueObject writeBufferObject = new QueueObject();
-				String writeBufferMessage = "WriteBuffer " + Tag + " " + Index;
-				writeBufferObject.setMessage(writeBufferMessage);
-				messageAndWait.setTransactionL1(transaction);
-				alq.enqueue(L1CtoL1D, writeBufferObject);
-				alq.enqueue(L1CtoL2, messageAndWait);//send request to L2 to get the data
-			}else if(currentState == States.MISSC)
-			{
-				QueueObject victimCacheObject = new QueueObject();
-				String victimCacheMessage = "VictimCache " + Tag + " " + Index;
-				victimCacheObject.setMessage(victimCacheMessage);
-				messageAndWait.setTransactionL1(transaction);
-				alq.enqueue(L1CtoL1D, victimCacheObject);
-				alq.enqueue(L1CtoL2, messageAndWait);
+						if(currentState == States.HIT)
+						{
+							alq.enqueue(L1CtoL1D, messageAndWait);//on a hit we enqueue to L1D
+							L1C[Index][messageAndWait.getTransactionL1()].setValid(true);
+							L1C[Index][messageAndWait.getTransactionL1()].setTag(Tag);
+						}else if(currentState == States.MISSI)
+						{
+							messageAndWait.setTransactionL1(transaction);
+							alq.enqueue(L1CtoL2, messageAndWait);//on a miss we enqueue to L2
+						}else if(currentState == States.MISSD)
+						{
+							QueueObject writeBufferObject = new QueueObject();
+							String writeBufferMessage = "WriteBuffer " + Tag + " " + Index;
+							writeBufferObject.setMessage(writeBufferMessage);
+							messageAndWait.setTransactionL1(transaction);
+							alq.enqueue(L1CtoL1D, writeBufferObject);
+							
+							alq.enqueue(L1CtoL2, messageAndWait);//send request to L2 to get the data
+						}else if(currentState == States.MISSC)
+						{
+							QueueObject victimCacheObject = new QueueObject();
+							String victimCacheMessage = "VictimCache " + Tag + " " + Index;
+							victimCacheObject.setMessage(victimCacheMessage);
+							messageAndWait.setTransactionL1(transaction);
+							alq.enqueue(L1CtoL1D, victimCacheObject);
+						
+							alq.enqueue(L1CtoL2, messageAndWait);
+						}	
+					}
+					i++;
+				}
+				
 			}
+			
+			
+			
+			
 			
 //			if(split.length == 3)//this is Read
 //			{
@@ -156,37 +199,70 @@ public class L1CacheController extends Cache
 			messageAndWait.setWait(true);
 			
 			String[] split = input.trim().split(" ");
-			int Address = Integer.parseInt(split[1].substring(0, 4));
-			int Tag = Address / NUMBER_SETS;
-			int Index = Address % NUMBER_SETS; 
+			//int Address = Integer.parseInt(split[1].substring(0, 4));
+			//int Tag = Address / NUMBER_SETS;
+			//int Index = Address % NUMBER_SETS; 
 			
 			if(split[0].equals("SendToL2"))
 			{
 				alq.enqueue(L1CtoL2, messageAndWait);
-			}else if(split[0].equals("SendToCPU"))
+			}else if(split[0].equals("CPURead"))
 			{
 				alq.enqueue(L1CtoCPU, messageAndWait);
+			}else if(split[0].equals("UpdateWriteL1"))
+			{
+				//alq.enqueue(L1CtoCPU, messageAndWait);
+				
 			}
 		
 		}
 		
 		if(!alq.isSingleQueueEmpty(L2toL1C) && alq.getHeadOfQueueWait(L2toL1C) == false) //L2 to L1C
 		{
-			QueueObject messageAndWait = alq.dequeue(L2toL1C);
+			QueueObjectChild messageAndWait = (QueueObjectChild) alq.dequeue(L2toL1C);
 			String input = messageAndWait.getMessage();
 			messageAndWait.setWait(true);
 			
 			String[] split = input.trim().split(" ");
-			int Tag = Integer.parseInt(split[1].substring(0, 2));
-			int Index = Integer.parseInt(split[1].substring(2, 4));
+			int Address = Integer.parseInt(split[1].substring(0, 4));
+			int Tag = Address / NUMBER_SETS;
+			int Index = Address % NUMBER_SETS; 
+			int byteSize = Integer.parseInt(split[2]);
+			int Offset = Integer.parseInt(split[1].substring(4,6));
 			
+			L1C[Index][messageAndWait.getTransactionL1()].setValid(true);
+			L1C[Index][messageAndWait.getTransactionL1()].setTag(Tag);
 			if(split[0].equals("CPURead"))
 			{
-				alq.enqueue(L1CtoL1D, messageAndWait);
+
+				QueueObjectChild qocCPU = new QueueObjectChild(byteSize);
+				
+				
+				for(int i = Offset; i < byteSize + Offset;i++)
+				{
+					qocCPU.block.setBlockValue(messageAndWait.block.getBlockValue(i-Offset), i-Offset);
+					//output[i-Offset] = messageAndWait.block.getBlockValue(i);
+				}
+				
+				qocCPU.setMessage(messageAndWait.getMessage());
+				qocCPU.setWait(true);
+				alq.enqueue(L1CtoCPU, qocCPU);
+				
+				QueueObjectChild newMessage = messageAndWait;
+				newMessage.setMessage("UpdateReadL1 " + Address + "00 " + "32");
+				newMessage.setWait(true);
+				alq.enqueue(L1CtoL1D, newMessage);
 				//send to CPU
 			}else if(split[0].equals("CPUWrite"))
 			{
-				alq.enqueue(L1CtoL1D, messageAndWait);
+				QueueObjectChild newQueueObject = messageAndWait;
+				char[] c = split[3].toCharArray();
+				newQueueObject.setMessage("UpdateWriteL1 " + Address + "00 " + "32" + " " + split[3]);
+				for(int i = 0; i < byteSize; i++)
+				{
+					newQueueObject.block.setBlockValue(c[i], Offset + i);
+				}
+				alq.enqueue(L1CtoL1D, newQueueObject);
 			}
 					
 			
@@ -470,7 +546,7 @@ public class L1CacheController extends Cache
 //		
 //	}
 	
-	public static States check_StateL1(int index, int tag)
+	public States check_StateL1(int index, int tag)
 	{
 		int numberValid = 0;
 		States states = null;
@@ -524,12 +600,15 @@ public class L1CacheController extends Cache
 		{
 			for(int j = 0; j < 4; j++)
 			{
-				ControllerObject temp = new ControllerObject(i, j, false, true);
+				ControllerObject temp = new ControllerObject(j, i, false, true);
 				L1C[i][j] = temp;
+				//L1C[i][j].setValid(true);
 			}
 			
 		}
 	}
+	
+
 	
 }// end of class L1CacheController
 

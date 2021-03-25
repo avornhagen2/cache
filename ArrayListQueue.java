@@ -22,9 +22,9 @@ public class ArrayListQueue {
 	}
 	
 	
-	public QueueObject dequeue(int indexOfQueue)
+	public QueueObject dequeue(int queueNumber)
 	{
-		return listOfQueues.get(indexOfQueue).poll();
+		return listOfQueues.get(queueNumber).poll();
 	}
 	
 	public void removeHeadOfQueue(int indexOfQueue)
@@ -57,4 +57,8 @@ public class ArrayListQueue {
 		return listOfQueues.get(indexOfQueue).peek();
 	}
 	
+	public QueueObjectBus getHeadOfQueueBus(int indexOfQueue)
+	{
+		return (QueueObjectBus) listOfQueues.get(indexOfQueue).peek();
+	}
 }//end of ArrayListQueue

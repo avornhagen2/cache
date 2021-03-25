@@ -2,10 +2,11 @@
 public class QueueObjectChild extends QueueObject{
 
 	
-	LineObject block = new LineObject();
+	LineObject block;
 	
-	public QueueObjectChild()
+	public QueueObjectChild(int size)
 	{	
+		block = new LineObject(size);
 		this.block.populateLineObject();
 	}
 	

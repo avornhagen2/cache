@@ -39,12 +39,12 @@ public class MemoryStub {
 				busSwitchCase(Address,busNumber,messageAndWait.getBusData());
 			}else if(split[0].equals("CPURead") || split[0].equals("CPUWrite"))
 			{
-				writeBusToL2(Address,busNumber,messageAndWait.getMessage());
+				writeBusToL2(Address,busNumber,messageAndWait);
 			}
 		}
 	}
 	
-	public void writeBusToL2(int Index, int busNumber, String message)
+	public void writeBusToL2(int Index, int busNumber, QueueObject qo)
 	{
 		QueueObjectBus bus = new QueueObjectBus();
 		char[] block = new char[4];
@@ -52,8 +52,10 @@ public class MemoryStub {
 		{
 			block[j] = DRAM[Index].getBlockValue(j + busNumber * 4);
 		}
+		bus.setBusNumber(busNumber);
 		bus.setBusData(block);
-		bus.setMessage(message);
+		bus.setTransactionL1(qo.getTransactionL1());
+		bus.setMessage(qo.getMessage());
 		alq.enqueue(DRAMtoL2, bus);
 	}
 	
@@ -102,7 +104,7 @@ public class MemoryStub {
 		//LineObject[] temp = new LineObject[setSize];
 		for(int i = 0; i < setSize; i++)
 		{
-			LineObject temp = new LineObject();
+			LineObject temp = new LineObject(32);
 			temp.populateLineObject();
 			DRAM[i] = temp;
 		}

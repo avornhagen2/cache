@@ -25,7 +25,7 @@ public class WriteBuffersForL1AndL2 {
 		
 		if(isFull())
 		{
-			QueueObjectChild messageAndWait = new QueueObjectChild();
+			QueueObjectChild messageAndWait = new QueueObjectChild(32);
 			
 
 			messageAndWait.setMessage(destination + " " + Tag + " " + Index );
@@ -116,7 +116,7 @@ public class WriteBuffersForL1AndL2 {
 			if(writeBufferInstruction[i][0] == Tag && writeBufferInstruction[i][1] == Index)
 			{
 				output = writeBufferData[i];
-				writeBufferData[i] = new LineObject();
+				writeBufferData[i] = new LineObject(32);
 				writeBufferInstruction[i][0] = -1;
 				writeBufferInstruction[i][1] = -1;
 				lru.LRUMissI();

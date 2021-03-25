@@ -42,22 +42,23 @@ public class LRU {
 	public int LRUHit(int hitColumn)
 	{
 		int temp = 0;
-		
+		int count = 0;
 		for(int i = 0; i < maxSize; i++)
 		{
 			if(LRU[i] == hitColumn)
 			{
-				temp = i;
-			}else
-			{
-				temp = -1;//for debugging
+				temp = LRU[i];
+				count = i;
+				break;
 			}
+			
 		}
 		
-		for(int i = temp; i < maxSize-1; i++)
+		for(int i = count; i < maxSize-1; i++)
 		{
 			LRU[i] = LRU[i+1];
 		}
+		LRU[maxSize-1] = temp;
 		return temp;
 	}
 	

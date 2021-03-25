@@ -87,7 +87,7 @@ public class VictimCacheForL1 extends Cache {
 			if(victimInstruction[i][0] == Tag && victimInstruction[i][1] == Index)
 			{
 				output = victimData[i];
-				victimData[i] = new LineObject();
+				victimData[i] = new LineObject(32);
 				victimInstruction[i][0] = -1;
 				victimInstruction[i][1] = -1;
 				lru.LRUMissI();

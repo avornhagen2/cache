@@ -14,13 +14,14 @@ import java.util.Scanner;
 public class MemoryHierarchyDriver {
 
 	final private static int CPUtoL1C = 0;
+	static ArrayList<String> Instructions = new ArrayList<String>();
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		
 		CacheManager scheduler = new CacheManager();
 		loadFileInput(args[0],scheduler.alq);
-		scheduler.runCycles(args[1]);
+		scheduler.runCycles(args[1],Instructions);
 		
 	}//end of main
 	
@@ -31,14 +32,17 @@ public class MemoryHierarchyDriver {
 			File myFile = new File(file);
 			Scanner scannerReadFile = new Scanner(myFile);
 			//Scanner input = null;
-			QueueObject messageAndWait = new QueueObject();
+			
 			//input = new Scanner(file);
+			
+			
 			
 			while(scannerReadFile.hasNextLine())
 			{
-				String input = scannerReadFile.nextLine();
-				messageAndWait.setMessage(input);
-				alq.enqueue(CPUtoL1C, messageAndWait);//enqueue from CPU to L1C
+				QueueObject messageAndWait = new QueueObject();
+				messageAndWait.setMessage(scannerReadFile.nextLine());
+				messageAndWait.setWait(true);
+	            alq.enqueue(CPUtoL1C, messageAndWait);//enqueue from CPU to L1C
 			}
 			
 			scannerReadFile.close();

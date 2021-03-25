@@ -1,13 +1,17 @@
 
 public class LineObject {
 
-	final static int blockSize = 32;
-	private char[] block = new char[blockSize];
+	int blockSize;
+	private char[] block;
 	int Address;
 	
 	//boolean clean = true;
 	
-	
+	public LineObject(int blockSize)
+	{
+		this.blockSize = blockSize;
+		block = new char[blockSize];
+	}
 	
 //	public LineObject(String[] block) {
 //		super();
@@ -59,7 +63,7 @@ public class LineObject {
 
 	public void populateLineObject()
 	{
-		for(int i = 0; i < 32; i++)
+		for(int i = 0; i < blockSize; i++)
 		{
 			block[i] = '1';
 		}
