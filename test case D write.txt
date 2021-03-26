@@ -1,0 +1,2 @@
+CPUWrite 400005 6 abcdef
+CPUWrite 300007 3 xyz

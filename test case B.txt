@@ -1,0 +1,3 @@
+CPUWrite 400005 4 abcd
+CPURead 400005 4
+
