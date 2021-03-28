@@ -8,7 +8,7 @@ public class VictimCacheForL1 extends Cache {
 	int[][] victimInstruction = new int[row][column];
 	LineObject[] victimData = new LineObject[setSize];
 	LRU lru = new LRU(row);
-	int[] tracking = new int[] {-1,-1};
+	int[] valid = new int[] {-1,-1};
 	
 	
 	
@@ -47,7 +47,7 @@ public class VictimCacheForL1 extends Cache {
 			
 			victimInstruction[record][0] = Tag; 
 			victimInstruction[record][1] = Index;
-			
+			valid[record] = 1;
 			victimData[record] = data;
 		}
 	}
@@ -70,7 +70,7 @@ public class VictimCacheForL1 extends Cache {
 		boolean full = true;
 		for(int i = 0; i < setSize; i++)
 		{
-			if(tracking[i] == -1)
+			if(valid[i] == -1)
 			{
 				full = false;
 				break;
@@ -90,6 +90,7 @@ public class VictimCacheForL1 extends Cache {
 				victimData[i] = new LineObject(32);
 				victimInstruction[i][0] = -1;
 				victimInstruction[i][1] = -1;
+				valid[i] = -1;
 				lru.LRUMissI();
 			}
 		}

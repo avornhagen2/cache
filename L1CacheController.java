@@ -22,25 +22,31 @@ public class L1CacheController extends Cache
 	//static int COLUMN;
 	static ControllerObject L1C[][];// = new ControllerObject[NUMBER_SETS][SET_SIZE];
 	static L1Data L1D;// = new L1Data(NUMBER_SETS,SET_SIZE);//put inside the constructor
-	static VictimCacheForL1 victim = new VictimCacheForL1();
+	static VictimCacheForL1 victim;// = new VictimCacheForL1();
 	static ArrayListQueue alq;
-	WriteBuffersForL1AndL2 writeBuffer = new WriteBuffersForL1AndL2(alq);
-	LRU lru;
+	static WriteBuffersForL1AndL2 writeBuffer;// = new WriteBuffersForL1AndL2(alq);
+	LRU[] lru;
 	ArrayList<String> InstructionsL1 = new ArrayList<String>();
 	ArrayList<Integer> busyAddresses;// = new ArrayList<Integer>();
-	
+	boolean mutualInclusion;
+	boolean[][] busyCheckL1; 
 	
 	
 	
 	//static int[] fifoCounter = new int[NUMBER_SETS];
-	public L1CacheController (ArrayListQueue alq, L1Data L1D, ArrayList<Integer> busyAddresses) {
+	public L1CacheController (ArrayListQueue alq, L1Data L1D, ArrayList<Integer> busyAddresses, boolean mutualInclusion, boolean[][] busyCheckL1) {
 		this.L1D = L1D;
 		this.alq = alq;
 		SET_SIZE = 4;
 		NUMBER_SETS = 64;
 		L1C = new ControllerObject[NUMBER_SETS][SET_SIZE];
 		this.busyAddresses = busyAddresses;
-		lru = new LRU(SET_SIZE);
+		lru = new LRU[NUMBER_SETS];
+		this.writeBuffer = L1D.writeBuffer;
+		this.victim = L1D.victim;
+		this.mutualInclusion = mutualInclusion;
+		this.busyCheckL1 = busyCheckL1;
+		populateLRU();
 	}
 
 	
@@ -100,6 +106,7 @@ public class L1CacheController extends Cache
 			int Address = 0;
 			String message = "";
 			QueueObject messageAndWait = new QueueObject();
+			
 			while(flag && i < 8)
 			{
 				if(InstructionsL1.size()-1 < i)
@@ -109,7 +116,23 @@ public class L1CacheController extends Cache
 					message = InstructionsL1.get(i);
 					String[] splitInstructions = message.trim().split(" ");
 					Address = Integer.parseInt(splitInstructions[1].substring(0, 4));
-					if(!busyAddresses.contains(Address))
+					int Tag = Address / NUMBER_SETS;
+					int Index = Address % NUMBER_SETS; 
+					int col = 0;
+					
+
+					for(int j=0; j < L1C[Index].length;j++)
+					{
+						if(L1C[Index][j].getValid() == false)
+						{
+							col = j;
+							break;
+						}else {
+							col = lru[Index].head();
+						}
+					}
+						
+					if(!busyAddresses.contains(Address) && !busyCheckL1[Index][col])
 					{
 						busyAddresses.add(Address);
 						messageAndWait.setMessage(message);
@@ -120,10 +143,16 @@ public class L1CacheController extends Cache
 						
 						//String[] split = message.trim().split(" ");
 						//int Address = Integer.parseInt(split[1].substring(0, 4));
-						int Tag = Address / NUMBER_SETS;
-						int Index = Address % NUMBER_SETS; 
+						//int Tag = Address / NUMBER_SETS;
+						//int Index = Address % NUMBER_SETS; 
+						
 						
 						States currentState = check_StateL1(Index, Tag);
+						
+						busyCheckL1[Index][transaction] = true;
+						
+						L1C[Index][transaction].setValid(true);
+						//L1C[Index][transaction].setBusy(true);//ask professor
 						
 						if(writeBuffer.checkValue(Tag,Index))
 						{
@@ -144,7 +173,7 @@ public class L1CacheController extends Cache
 						if(currentState == States.HIT)
 						{
 							alq.enqueue(L1CtoL1D, messageAndWait);//on a hit we enqueue to L1D
-							L1C[Index][messageAndWait.getTransactionL1()].setValid(true);
+//							L1C[Index][messageAndWait.getTransactionL1()].setValid(true);
 							L1C[Index][messageAndWait.getTransactionL1()].setTag(Tag);
 						}else if(currentState == States.MISSI)
 						{
@@ -153,18 +182,20 @@ public class L1CacheController extends Cache
 						}else if(currentState == States.MISSD)
 						{
 							QueueObject writeBufferObject = new QueueObject();
-							String writeBufferMessage = "WriteBuffer " + Tag + " " + Index;
+							String writeBufferMessage = "WriteBuffer " + Tag + "" + Index + "00 0";
 							writeBufferObject.setMessage(writeBufferMessage);
 							messageAndWait.setTransactionL1(transaction);
+							writeBufferObject.setTransactionL1(transaction);
 							alq.enqueue(L1CtoL1D, writeBufferObject);
 							
 							alq.enqueue(L1CtoL2, messageAndWait);//send request to L2 to get the data
 						}else if(currentState == States.MISSC)
 						{
 							QueueObject victimCacheObject = new QueueObject();
-							String victimCacheMessage = "VictimCache " + Tag + " " + Index;
+							String victimCacheMessage = "VictimCache " + Tag + "" + Index + "00 0";
 							victimCacheObject.setMessage(victimCacheMessage);
 							messageAndWait.setTransactionL1(transaction);
+							victimCacheObject.setTransactionL1(transaction);
 							alq.enqueue(L1CtoL1D, victimCacheObject);
 						
 							alq.enqueue(L1CtoL2, messageAndWait);
@@ -213,6 +244,9 @@ public class L1CacheController extends Cache
 			{
 				//alq.enqueue(L1CtoCPU, messageAndWait);
 				
+			}else if(split[0].equals("MutualInclusionChecktoDRAM"))
+			{
+				sendRequestToDestination(messageAndWait, L1CtoL2, alq);
 			}
 		
 		}
@@ -224,6 +258,7 @@ public class L1CacheController extends Cache
 			messageAndWait.setWait(true);
 			
 			String[] split = input.trim().split(" ");
+			String wordAddress = split[1].substring(0, 4);
 			int Address = Integer.parseInt(split[1].substring(0, 4));
 			int Tag = Address / NUMBER_SETS;
 			int Index = Address % NUMBER_SETS; 
@@ -249,7 +284,7 @@ public class L1CacheController extends Cache
 				alq.enqueue(L1CtoCPU, qocCPU);
 				
 				QueueObjectChild newMessage = messageAndWait;
-				newMessage.setMessage("UpdateReadL1 " + Address + "00 " + "32");
+				newMessage.setMessage("UpdateReadL1 " + wordAddress + "00 " + "32");
 				newMessage.setWait(true);
 				alq.enqueue(L1CtoL1D, newMessage);
 				//send to CPU
@@ -257,15 +292,114 @@ public class L1CacheController extends Cache
 			{
 				QueueObjectChild newQueueObject = messageAndWait;
 				char[] c = split[3].toCharArray();
-				newQueueObject.setMessage("UpdateWriteL1 " + Address + "00 " + "32" + " " + split[3]);
+				newQueueObject.setMessage("UpdateWriteL1 " + wordAddress + "00 " + "32" + " " + split[3]);
 				for(int i = 0; i < byteSize; i++)
 				{
 					newQueueObject.block.setBlockValue(c[i], Offset + i);
 				}
 				alq.enqueue(L1CtoL1D, newQueueObject);
-			}
-					
+			}else if(split[0].equals("MutualInclusionCheckClean"))
+			{
+				QueueObjectChild head = new QueueObjectChild(32);
+				boolean inL1 = false;
+				
 			
+				
+				for(int i = 0; i < 2; i++)
+				{
+					if(writeBuffer.writeBufferInstruction[i][0] == Tag && writeBuffer.writeBufferInstruction[i][1] == Index)
+					{
+						inL1 = true;
+						writeBuffer.valid[i] = -1;
+						if(!Arrays.equals(messageAndWait.block.getBlock(), writeBuffer.writeBufferData[i].getBlock()))
+						{
+							head.block.setBlock(writeBuffer.writeBufferData[i].getBlock());
+							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							sendRequestToDestination(head, L1CtoL2, alq);
+						}
+						
+					}else if(victim.victimInstruction[i][0] == Tag && victim.victimInstruction[i][1] == Index)
+					{
+						inL1 = true;
+						victim.valid[i] = -1;
+						if(!Arrays.equals(messageAndWait.block.getBlock(), victim.victimData[i].getBlock()))
+						{
+							head.block.setBlock(victim.victimData[i].getBlock());
+							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							sendRequestToDestination(head, L1CtoL2, alq);
+						}
+					}
+				}
+				
+				for(int i = 0; i < SET_SIZE; i++)
+				{
+					if(L1C[Index][i].getTag() == Tag)
+					{
+						head.setMessage(messageAndWait.getMessage());
+						head.block.setBlock(messageAndWait.block.getBlock());
+						head.setTransactionL1(i);
+						sendRequestToDestination(head, L1CtoL1D, alq);
+						inL1 = true;
+						L1C[Index][i].setValid(false);
+					}	
+				}
+				
+				if(inL1 == false)
+				{
+					head.setMessage("MutualInclusionPass " + "000000 0");
+					sendRequestToDestination(head, L1CtoL2, alq);
+				}
+			}else if(split[0].equals("MutualInclusionCheckDirty"))
+			{
+				QueueObjectChild head = new QueueObjectChild(32);
+				boolean inL1 = false;
+				
+				for(int i = 0; i < 2; i++)
+				{
+					if(writeBuffer.writeBufferInstruction[i][0] == Tag && writeBuffer.writeBufferInstruction[i][1] == Index)
+					{
+						inL1 = true;
+						writeBuffer.valid[i] = -1;
+						if(!Arrays.equals(messageAndWait.block.getBlock(), writeBuffer.writeBufferData[i].getBlock()))
+						{
+							head.block.setBlock(writeBuffer.writeBufferData[i].getBlock());
+							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							sendRequestToDestination(head, L1CtoL2, alq);
+						}
+						
+					}else if(victim.victimInstruction[i][0] == Tag && victim.victimInstruction[i][1] == Index)
+					{
+						inL1 = true;
+						victim.valid[i] = -1;
+						if(!Arrays.equals(messageAndWait.block.getBlock(), victim.victimData[i].getBlock()))
+						{
+							head.block.setBlock(victim.victimData[i].getBlock());
+							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							sendRequestToDestination(head, L1CtoL2, alq);
+						}
+					}
+				}
+				
+				for(int i = 0; i < SET_SIZE; i++)
+				{
+					if(L1C[Index][i].getTag() == Tag)
+					{
+						head.setMessage(messageAndWait.getMessage());
+						head.block.setBlock(messageAndWait.block.getBlock());
+						head.setTransactionL1(i);
+						sendRequestToDestination(head, L1CtoL1D, alq);
+						inL1 = true;
+						L1C[Index][i].setValid(false);
+					}	
+				}
+				
+				if(inL1 == false)
+				{
+					head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+					head.block.setBlock(messageAndWait.block.getBlock());
+					sendRequestToDestination(head, L1CtoL2, alq);
+				}
+			}
 		}
 
 		
@@ -315,236 +449,6 @@ public class L1CacheController extends Cache
 			L1C[Index][transaction].setTag(Tag);
 		}
 	}
-//	public static void outputToCPU()
-//	{
-//		
-//		//enqueue to stub
-//		
-//		
-//	}//end of Write to CPU
-//	
-//	
-//	public static void writeToL1Data(int index, int tag, int offset, int numberOfBytes, int[] tagAndIndex, String[] dataFromCPU, ArrayListQueue alq)
-//	{
-//		
-//		//request a line from L1D
-//		//get a state of that line
-//		States state;
-//		//check victim cache
-//			//if in victim cache, then write to L1C and L1D
-//			//else do nothing
-//		victim.check(tag,index);
-//		//check write buffer
-//			//if in write buffer, then write to L1C
-//			//else do nothing
-//		writebuffer.check();
-//		state = check_HitL1(index, tag);
-//		//debug the inputs to make sure they are working as expected
-//		//row column tag index
-//		switch (state)
-//		{
-//			case HIT:
-//				//enqueue to CPU L1
-//				alq.enqueue(L1CtoL1D, input);
-//				writeHit(index, lru[index].tail(), offset, numberOfBytes, dataFromCPU);
-//				break;
-//			default:
-//				//enqueue to L2
-//				alq.enqueue(L1CtoL2, input);
-////			case MISSC:
-////				//send current data to victim cache, enqueue to L1 to L2 the message
-////				writeMISSC(index, lru[index].tail(), offset, numberOfBytes, tagAndIndex, dataFromCPU);//look into this
-////				break;
-////			case MISSD:
-////				//send data to writebuffer, enqueue to L1 to L2 the message
-////				writeMISSD(index, lru[index].tail(), offset, numberOfBytes, dataFromCPU);//look into this
-////				break;
-////			case MISSI:
-////				//enqueue to L1 to L2 the message
-////				writeMISSI(index, lru[index].tail(), offset, numberOfBytes, dataFromCPU);
-////				break;
-//		}
-//		
-//	}//end of writeToL1Data
-//	
-//	//transient states for L1 Controller
-////	Rdwaitd		Waiting for data from L1 for Read
-////	RdwaitL2d	Waiting for data from L2 for Read
-////	Rdwait1d	Waiting for data from L1/L2 for Read 
-////	Rdwait2d	Waiting for data from L1 and L2 for Read
-////	Wrwaitd		Waiting for data from L2 for Write
-////	Wrwait1d	Waiting for data from L1/L2 for Write
-////	Wrwait2d	Waiting for data from L1 and L2 for Write
-////	Wralloc		Write Allocation done
-//	
-//	//wait state
-//	//finished state
-//
-//	
-//	
-//	public static void readFromL1Data( int index, int tag, int offset, int bytes, int[] tagAndIndex, ArrayListQueue alq)
-//	{
-//		//request a line from L1D
-//		//ArrayList<ControllerObject> temp = new ArrayList<ControllerObject>();
-//		//ControllerObject temp;
-//		//String command 
-//		States state;
-//		victim.check(tag, index);
-//		writebuffer.check();
-//		state = check_HitL1(index, tag);//add way to look into write buffer and victim cache here
-//		//debug the inputs to make sure they are working as expected
-//		//row column tag index
-//		switch (state)
-//		{
-//			case HIT:
-//				alq.enqueue(L1CtoL1D,input);
-//				//readHit(index, lru[index].tail(), offset, bytes, L1D);
-//				break;
-//			case MISSC:
-//				readMISSC(index, lru[index].tail(), tagAndIndex, L2);//look into this
-//				break;
-//			case MISSI:
-//				readMISSI(index, lru[index].tail(), offset, bytes);
-//				break;
-//			case MISSD:
-//				readMISSD(index, lru[index].tail(), tagAndIndex, L2);//look into this
-//				break;
-//		}
-//		
-//
-//		
-//		//get a state of that line
-//		//switch statement for what to do based on the state
-//		
-//		
-//	}//readFromL1Data
-//	
-//	
-//	public static void readHit(int row, int column, int offset, int numberOfBytes, L1Data L1D)
-//	{
-//		
-//		String readResult = "";
-//
-//		for(int i = 0; i < numberOfBytes; i++) {
-//			
-//			readResult += L1D.getL1DValue(row, column, i + offset);
-//			//readFinal += readFinal.valueOf(readResult);
-//			//need to check if this still works the way we want
-//		}
-//		
-//		outputToCPU();
-//	}//end of readHit
-//	
-//	
-//	
-//	public static void readMISSI(int row, int column, int offset, int byteNumber)
-//	{
-//		String[] input = L2.readFromL2();//put inputs here (tag, index)
-//		
-//		for(int i = 0; i < L1D.getL1D().blockSize; i++) {
-//			L1D.setL1DValue(input[i], row, column, i);
-//		}
-//		
-//		L1C[row][column].setClean(true);//set to clean
-//			
-//		outputToCPU();
-//	}
-//	
-//	public static void readMISSC(int row, int column, int[] tagAndIndex, L2Cache L2)
-//	{
-//		//victimize
-//		int replace = fifoCounter[row];
-//		int sets = 1;
-//		int[] info = new int[] {row,column};	
-//		
-//		//send data from L1D to victim
-//		String[] dataFromL1D = L1D.getL1DBlock(row, column);
-//		writeToVictimCache(row, column, tagAndIndex, dataFromL1D, victim);
-//		
-//		String[] input = L2.readFromL2();
-//	
-//		for(int i = 0; i < L1D.getL1D().blockSize; i++) {
-//			L1D.setL1DValue(input[i], row, column, i);
-//		}
-//				
-//			
-//		outputToCPU();
-//	}
-//	
-//	public static void readMISSD(int row, int column) {
-//		int replace = fifoCounter[row];
-//		int sets = 1;
-//		int[] info = new int[] {row,column};	
-//		
-//		//send data from L1D to write buffer
-//		String[] dataFromL1D = L1D.getL1DBlock(row, column);
-//		writeBuffer();
-//		
-//		String[] input = L2.readFromL2();
-//	
-//		for(int i = 0; i < L1D.getL1D().blockSize; i++) {
-//			L1D.setL1DValue(input[i], row, column, i);
-//		}
-//				
-//			
-//		outputToCPU();
-//	}
-//	
-//	public static void writeHit(int row, int column, int offset, int byteNumber, String[] input)
-//	{
-//		for(int i = 0; i < byteNumber; i++) {
-//			L1D.setL1DValue(input[i], row, column,offset + i);
-//		}
-//		
-//		L1C[row][column].setClean(false);//set to dirty
-//	}
-//	
-//	public static void writeMISSD(int row, int column, int offset, int byteNumber, String[] input)
-//	{
-//		writeBuffer();
-//		getDataFromL2toL1(row, column, offset, byteNumber);
-//		
-//	}
-//	
-//	public static void writeMISSC(int row, int column, int offset, int byteNumber, int[] tagAndIndex, String[] dataFromCPU) {
-//		
-//
-//		//get tag and index and data from parsing CPU input
-//		writeToVictimCache(row, column, tagAndIndex, dataFromCPU, victim);
-//		getDataFromL2toL1(row, column, offset, byteNumber);
-//		
-//	}
-//	
-//	public static void writeMISSI(int row, int column, int offset, int byteNumber, String[] input) {
-//		
-//		getDataFromL2toL1(row, column, offset, byteNumber);
-//		
-//	}
-//
-//	
-//	public static void getDataFromL2toL1(int row, int column, int offset, int byteNumber) {
-//		String[] dataFromL2 = L2.readFromL2();
-//		
-//		for(int i = 0; i < byteNumber; i++) {
-//			//writing data from L2 into L1D
-//			L1D.setL1DValue(dataFromL2[i], row, column, offset + i);
-//		}
-//		
-//		L1C[row][column].setClean(false);//set to dirty
-//		
-//	}//end of getDataFromL2toL1
-//	
-//	public static void writeToVictimCache(int row, int column, int[] tagAndIndex, String[] data, VictimCacheForL1 victim) {
-//		
-//		victim.setVictimInstructionValue(row, tagAndIndex);
-//		victim.setVictimDataValue(row, data);
-//
-//		
-//	}//end of victimize
-//	
-//	public static void writeBuffer() {
-//		
-//	}
 	
 	public States check_StateL1(int index, int tag)
 	{
@@ -564,7 +468,7 @@ public class L1CacheController extends Cache
 					//check if it is a hit
 					states = States.HIT;
 					//COLUMN = i;
-					transaction = lru.LRUHit(i);
+					transaction = lru[index].LRUHit(i);
 					break;
 				}
 			}
@@ -573,11 +477,11 @@ public class L1CacheController extends Cache
 		{
 			if (numberValid != SET_SIZE) {
 				states = States.MISSI;
-				transaction = lru.LRUMissI();
+				transaction = lru[index].LRUMissI();
 			}
 			else
 			{
-				transaction = lru.LRUMissCD();
+				transaction = lru[index].LRUMissCD();
 				if (L1C[index][transaction].getClean())//change fifocounter[index]
 				{
 					states = States.MISSC;
@@ -606,9 +510,25 @@ public class L1CacheController extends Cache
 			}
 			
 		}
+		
+		for(int i = 0; i < 2; i++)
+		{
+			LineObject temp = new LineObject(32);
+			victim.victimData[i] = temp;
+			writeBuffer.writeBufferData[i] = temp;
+		}
+		
+		
 	}
 	
-
+	public void populateLRU()
+	{
+		for(int i = 0; i < 64; i++)
+		{
+			lru[i] = new LRU(4);
+		}
+			
+	}
 	
 }// end of class L1CacheController
 

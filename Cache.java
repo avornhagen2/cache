@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 
 public class Cache {
 
@@ -36,52 +37,22 @@ public class Cache {
 		SET_SIZE = sET_SIZE;
 	}
 
-//have to change check state for L2
-//	public static States check_State(int index, int tag, ControllerObject[][] cache2D)
-//	{
-//		int numberValid = 0;
-//		States states = null;
-//
-//		for(int i=0; i < cache2D[index].length;i++)
-//		{
-//			if(cache2D[index][i].getValid() == true)
-//			{
-//				//store objects in L1D
-//				//temp.add(L1C[index][i]);
-//				numberValid++;
-//
-//				if(tag == cache2D[index][i].getTag())
-//				{
-//					//check if it is a hit
-//					states = States.HIT;
-//					COLUMN = i;
-//					break;
-//				}
-//			}
-//		}
-//		if(states != States.HIT)
-//		{
-//			if (numberValid != SET_SIZE) {
-//				states = States.MISSI;
-//			}
-//			else
-//			{
-//
-//				if (cache2D[index][fifoCounter[index]].getClean())//change fifocounter[index]
-//				{
-//					states = States.MISSC;
-//				}
-//				else
-//				{
-//					states = States.MISSD;
-//				}
-//			COLUMN = fifoCounter[index];
-//			}
-//			
-//		}
-//		return states;
-//	}//end of check state
-	
+	public void sendRequestToDestination(QueueObject newHead, int destination, ArrayListQueue alq) 
+	{
+		ArrayList<QueueObject> oldQueueObjectsHolder = new ArrayList<QueueObject>();
+		//mutualInclusion = true;
+		while(!alq.isSingleQueueEmpty(destination))
+		{
+			oldQueueObjectsHolder.add(alq.dequeue(destination));
+		}
+		
+		alq.enqueue(destination, newHead);
+		
+		for(int i = 0; i < oldQueueObjectsHolder.size(); i++)
+		{
+			alq.enqueue(destination, oldQueueObjectsHolder.get(i));
+		}
+	}
 
 	
 }//end of cache

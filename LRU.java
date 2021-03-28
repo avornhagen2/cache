@@ -66,12 +66,10 @@ public class LRU {
 	{
 		return LRU[maxSize - 1];
 	}
-
-
-//	public void victimLRU(int input)
-//	{
-//		LRUMissI();
-//		
-//	}
+	
+	public int head()
+	{
+		return LRU[0];
+	}
 	
 }//end of LRU

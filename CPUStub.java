@@ -26,10 +26,10 @@ public class CPUStub {
 	}//end of cpuStubMessage
 	
 	
-	public void run()
+	public String run()
 	{
 		
-		
+		String CPUOutput = "";
 		
 		if(!alq.isSingleQueueEmpty(L1CtoCPU) && alq.getHeadOfQueueWait(L1CtoCPU) == false)
 		{
@@ -37,7 +37,7 @@ public class CPUStub {
 			String input = getOutputMessage(messageAndWait);
 			String message = messageAndWait.getMessage();
 			String[] splitInput = message.trim().split(" ");
-			//int AddressInput = Integer.parseInt(splitInput[1].substring(0, 4));
+
 			if(splitInput[0].equals("CPURead") || splitInput[0].equals("SendToCPU"))
 			{
 				if(input == null || input == "")
@@ -45,12 +45,14 @@ public class CPUStub {
 					System.out.println("bad message null or empty string");
 				}else {
 					System.out.println(input);
+					CPUOutput = input;
 				}
-				//busyAddresses.remove(busyAddresses.indexOf(AddressInput));
+				
 			}
 			
-			//busyAddresses.remove(busyAddresses.indexOf(AddressInput));
+		
 		}
+		return CPUOutput;
 	}
 	
 	public String getOutputMessage(QueueObject qo)

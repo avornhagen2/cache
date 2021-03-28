@@ -60,6 +60,16 @@ public class ControllerObject {
 	}
 
 
+	public boolean getBusy() {
+		return busy;
+	}
+
+
+	public void setBusy(boolean busy) {
+		this.busy = busy;
+	}
+
+	
 	 
 	
 }//end of ControllerObject

@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 
 
@@ -10,9 +11,10 @@ public class WriteBuffersForL1AndL2 {
 	LineObject[] writeBufferData = new LineObject[setSize];
 	LRU lru = new LRU(row);
 	//boolean notFull = false;
-	int[] tracking = new int[] {-1,-1};
+	int[] valid = new int[] {-1,-1};
 	final private static int L1DtoL1C = 6;
 	final private static int L2toDRAM = 3;
+	final private static int L2toL1C = 5;
 	ArrayListQueue alq;
 	
 	public WriteBuffersForL1AndL2(ArrayListQueue alq)
@@ -28,9 +30,10 @@ public class WriteBuffersForL1AndL2 {
 			QueueObjectChild messageAndWait = new QueueObjectChild(32);
 			
 
-			messageAndWait.setMessage(destination + " " + Tag + " " + Index );
+			
 			messageAndWait.setWait(true);
 			int record = lru.LRUMissCD();//make sure this works with static
+			messageAndWait.setMessage(destination + " " + writeBufferInstruction[record][0] + "" + writeBufferInstruction[record][1] + "0");
 			messageAndWait.block.setBlock(writeBufferData[record].getBlock());
 			
 			if(destination == "SendToL2")//make sure this works when debugging
@@ -38,19 +41,22 @@ public class WriteBuffersForL1AndL2 {
 				alq.enqueue(L1DtoL1C, messageAndWait);
 			}else if(destination == "SendToDRAM")
 			{
-				for(int i = 0; i < 8; i++)
-				{
-					QueueObjectBus bus = new QueueObjectBus();
-					bus.setBusNumber(i);
-					char[] block = new char[4];
-					for(int j = 0; j < 4; j++)
-					{
-						block[j] = data.getBlockValue(j + i * 4);
-					}
-					bus.setBusData(block);
-					bus.setMessage(messageAndWait.getMessage());
-					alq.enqueue(L2toDRAM, bus);
-				}
+				messageAndWait.setMessage("MutualInclusionCheckDirty " + writeBufferInstruction[record][0] + "" + writeBufferInstruction[record][1] + "0");
+				sendRequestToDestination(messageAndWait, L2toL1C, alq);
+//				for(int i = 0; i < 8; i++)
+//				{
+//					QueueObjectBus bus = new QueueObjectBus();
+//					bus.setBusNumber(i);
+//					char[] block = new char[4];
+//					for(int j = 0; j < 4; j++)
+//					{
+//						block[j] = data.getBlockValue(j + i * 4);
+//					}
+//					bus.setBusData(block);
+//					bus.setMessage(messageAndWait.getMessage());
+//					alq.enqueue(L2toDRAM, bus);
+//				}
+				
 			}
 				
 			
@@ -67,7 +73,7 @@ public class WriteBuffersForL1AndL2 {
 			int record = lru.LRUMissI();
 			writeBufferInstruction[record][0] = Tag; 
 			writeBufferInstruction[record][1] = Index;
-			
+			valid[record] = 1;
 			writeBufferData[record] = data;
 		}
 	}
@@ -119,6 +125,7 @@ public class WriteBuffersForL1AndL2 {
 				writeBufferData[i] = new LineObject(32);
 				writeBufferInstruction[i][0] = -1;
 				writeBufferInstruction[i][1] = -1;
+				valid[i] = -1;
 				lru.LRUMissI();
 			}
 		}
@@ -130,7 +137,7 @@ public class WriteBuffersForL1AndL2 {
 		boolean full = true;
 		for(int i = 0; i < setSize; i++)
 		{
-			if(tracking[i] == -1)
+			if(valid[i] == -1)
 			{
 				full = false;
 				break;
@@ -139,6 +146,22 @@ public class WriteBuffersForL1AndL2 {
 		return full;
 	}
 	
-	
+	public void sendRequestToDestination(QueueObject newHead, int destination, ArrayListQueue alq) 
+	{
+		ArrayList<QueueObject> oldQueueObjectsHolder = new ArrayList<QueueObject>();
+		//mutualInclusion = true;
+		while(!alq.isSingleQueueEmpty(destination))
+		{
+			oldQueueObjectsHolder.add(alq.dequeue(destination));
+		}
+		
+		alq.enqueue(destination, newHead);
+		
+		for(int i = 0; i < oldQueueObjectsHolder.size(); i++)
+		{
+			alq.enqueue(destination, oldQueueObjectsHolder.get(i));
+		}
+	}
+
 	
 }//end of write buffers for l1 and l2

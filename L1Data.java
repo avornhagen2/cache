@@ -1,24 +1,27 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 
-public class L1Data {
+public class L1Data extends Cache{
 
 	final public static int NUMBER_SETS = 64;
 	final public static int SET_SIZE = 4;
 	//L1CacheController L1C = new L1CacheController();
 	private LineObject[][] L1D = new LineObject[NUMBER_SETS][SET_SIZE];
-	private WriteBuffersForL1AndL2 writeBuffer;
-	private VictimCacheForL1 victim;
+	ArrayListQueue alq;
+	public WriteBuffersForL1AndL2 writeBuffer = new WriteBuffersForL1AndL2(alq);
+	public VictimCacheForL1 victim = new VictimCacheForL1();
 	final private static int L1CtoL1D = 1;
 	final private static int L1DtoL1C = 6;
-	ArrayListQueue alq;
+	boolean[][] busyCheckL1;
 	ArrayList<Integer> busyAddresses;
 
 	//String[][][] L1D = new String[L1C.NUMBER_SETS][L1C.SET_SIZE][blockSize];
 	
-	public L1Data(ArrayListQueue alq, ArrayList<Integer> busyAddresses)
+	public L1Data(ArrayListQueue alq, ArrayList<Integer> busyAddresses, boolean[][] busyCheckL1)
 	{
 		this.alq = alq;
 		this.busyAddresses = busyAddresses;
+		this.busyCheckL1 = busyCheckL1;
 	}
 	
 	public void run()
@@ -32,11 +35,20 @@ public class L1Data {
 			String[] split = input.trim().split(" ");
 			String operation = split[0];
 			String output = "";
+			int Address = 0;
+			int Offset = 0;
 			
-			int Address = Integer.parseInt(split[1].substring(0, 4));
+			if(split[0].equals("VictimCache") || split[0].equals("WriteBuffer"))
+			{
+				Address = Integer.parseInt(split[1].substring(0, 4));
+			}else {
+				Address = Integer.parseInt(split[1].substring(0, 4));
+				Offset = Integer.parseInt(split[1].substring(4,6));
+			}
+			
+			
 			int Tag = Address / NUMBER_SETS;
 			int Index = Address % NUMBER_SETS; 
-			int Offset = Integer.parseInt(split[1].substring(4,6));
 			int byteSize = Integer.parseInt(split[2]);
 			
 			if(operation.equals("CPURead"))
@@ -52,6 +64,7 @@ public class L1Data {
 				qoc.setMessage(messageAndWait.getMessage());
 				alq.enqueue(L1DtoL1C, qoc);
 				busyAddresses.remove(busyAddresses.indexOf(Address));
+				busyCheckL1[Index][messageAndWait.getTransactionL1()] = false;
 				
 			}else if(operation.equals("CPUWrite"))
 			{
@@ -75,16 +88,17 @@ public class L1Data {
 				}
 				
 				busyAddresses.remove(busyAddresses.indexOf(Address));
+				busyCheckL1[Index][messageAndWait.getTransactionL1()] = false;
 				//alq.enqueue(L1DtoL1C, messageAndWait);//???
 				//System.out.println("Write to L1D Success");
 				//we are not enqueueing on a write
 				
 			}else if(operation.equals("WriteBuffer"))
 			{
-				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][Tag], "SendToL2");
+				writeBuffer.setWriteBufferValue(Tag, Index, L1D[Index][messageAndWait.getTransactionL1()], "SendToL2");
 			}else if(operation.equals("VictimCache"))
 			{	
-				victim.setVictimCacheValueDirectly(Tag, Index, L1D[Index][Tag]);
+				victim.setVictimCacheValueDirectly(Tag, Index, L1D[Index][messageAndWait.getTransactionL1()]);
 			}else if(operation.equals("UpdateReadL1"))
 			{
 				
@@ -96,6 +110,7 @@ public class L1Data {
 				}
 				
 				busyAddresses.remove(busyAddresses.indexOf(Address));
+				busyCheckL1[Index][messageAndWait.getTransactionL1()] = false;
 				//System.out.println("Write to L1D Success");
 				//we are not enqueueing on a write
 				
@@ -113,9 +128,23 @@ public class L1Data {
 				//System.out.println("Write to L1D Success");
 				//we are not enqueueing on a write
 				busyAddresses.remove(busyAddresses.indexOf(Address));
+				busyCheckL1[Index][messageAndWait.getTransactionL1()] = false;
+			}else if(operation.equals("MutualInclusionCheckClean"))
+			{
+				if(!Arrays.equals(((QueueObjectChild)messageAndWait).block.getBlock(), L1D[Index][messageAndWait.getTransactionL1()].getBlock()))
+				{
+					QueueObjectChild head = new QueueObjectChild(32);
+					head.block.setBlock(L1D[Index][messageAndWait.getTransactionL1()].getBlock());
+					head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+					sendRequestToDestination(head, L1DtoL1C, alq);
+				}
+			}else if(operation.equals("MutualInclusionCheckDirty"))
+			{
+				QueueObjectChild head = new QueueObjectChild(32);
+				head.block.setBlock(L1D[Index][messageAndWait.getTransactionL1()].getBlock());
+				head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+				sendRequestToDestination(head, L1DtoL1C, alq);
 			}
-			
-			
 		}
 	}
 	
