@@ -51,12 +51,18 @@ public class CacheManager {
 		try {
 			FileWriter myWriter = new FileWriter(fileName);
 			
-			myWriter.write(String.format("%5s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s %n"
+			myWriter.write(String.format("%5s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s %n"
 					, "Cycle"
 					, "CPU to L1C"
 					, "InstructionsInL1"
 					, "L1C to L1D"
-					, "L1C to L2", "L2 to DRAM","DRAM to L2","L2 to L1C","L1D to L1C","L1C to CPU"));
+					, "L1C to L2"
+					, "InstructionsInL2"
+					, "L2 to DRAM"
+					,"DRAM to L2"
+					,"L2 to L1C"
+					,"L1D to L1C"
+					,"L1C to CPU"));
 			
 			
 			
@@ -88,13 +94,25 @@ public class CacheManager {
 					
 				}
 				
-				if(time == 7)
+				
+				
+				if(time == 100)
+				{
+					int i = 0;
+					
+				}
+				if(time == 44)
+				{
+					int i = 0;
+					
+				}
+				if(time == 500)
 				{
 					int i = 0;
 					
 				}
 				for(int i = 0; i < 8; i++) {
-					if(alq.isSingleQueueEmpty(i) && L1C.InstructionsL1.isEmpty())
+					if(alq.isSingleQueueEmpty(i) && L1C.InstructionsL1.isEmpty() && L2.InstructionsL2.isEmpty())
 					{
 						emptyCount++;
 					}
@@ -106,19 +124,26 @@ public class CacheManager {
 					System.out.println("Number of Busy addresses: " + busyAddresses.size());
 				}
 				
-				System.out.printf("%5s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s %n"
+				System.out.printf("%5s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s %n"
 					, "Cycle"
 					, "CPU to L1C"
 					, "InstructionsInL1"
 					, "L1C to L1D"
-					, "L1C to L2", "L2 to DRAM","DRAM to L2","L2 to L1C","L1D to L1C","L1C to CPU");
+					, "L1C to L2"
+					, "InstructionsInL2"
+					, "L2 to DRAM"
+					,"DRAM to L2"
+					,"L2 to L1C"
+					,"L1D to L1C"
+					,"L1C to CPU");
 				
-				myWriter.write(String.format("%5s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s %n"
+				myWriter.write(String.format("%5s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s | %25s %n"
 						, time
 						, handleMessage(alq.getHeadOfQueue(CPUtoL1C),CPUtoL1C)
-						, InstructionOutput()
+						, InstructionOutputL1()
 						, handleMessage(alq.getHeadOfQueue(L1CtoL1D),L1CtoL1D)
 						, handleMessage(alq.getHeadOfQueue(L1CtoL2),L1CtoL2)//add in column for InstructionsL1
+						, InstructionOutputL2()
 						, handleMessage(alq.getHeadOfQueue(L2toDRAM),L2toDRAM)
 						, handleMessage(alq.getHeadOfQueue(DRAMtoL2),DRAMtoL2)
 						, handleMessage(alq.getHeadOfQueue(L2toL1C),L2toL1C)
@@ -126,12 +151,13 @@ public class CacheManager {
 						, handleMessage(alq.getHeadOfQueue(L1CtoCPU),L1CtoCPU)));
 				
 				time++;
-				System.out.printf("%5s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s %n"
+				System.out.printf("%5s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s | %20s %n"
 						, time
 						, handleMessage(alq.getHeadOfQueue(CPUtoL1C),CPUtoL1C)
-						, InstructionOutput()
+						, InstructionOutputL1()
 						, handleMessage(alq.getHeadOfQueue(L1CtoL1D),L1CtoL1D)
 						, handleMessage(alq.getHeadOfQueue(L1CtoL2),L1CtoL2)
+						, InstructionOutputL2()
 						, handleMessage(alq.getHeadOfQueue(L2toDRAM),L2toDRAM)
 						, handleMessage(alq.getHeadOfQueue(DRAMtoL2),DRAMtoL2)
 						, handleMessage(alq.getHeadOfQueue(L2toL1C),L2toL1C)
@@ -167,7 +193,7 @@ public class CacheManager {
 		}
 	}
 	
-	public String InstructionOutput()
+	public String InstructionOutputL1()
 	{
 		if(L1C.InstructionsL1.isEmpty())
 		{
@@ -178,4 +204,12 @@ public class CacheManager {
 		}
 	}
 
+	public String InstructionOutputL2()
+	{
+		if(L2.InstructionsL2.isEmpty()) {
+			return "";
+		}else {
+			return L2.InstructionsL2.get(0).getMessage();
+		}
+	}
 }//end of CacheManager

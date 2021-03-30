@@ -28,21 +28,23 @@ public class WriteBuffersForL1AndL2 {
 		if(isFull())
 		{
 			QueueObjectChild messageAndWait = new QueueObjectChild(32);
-			
-
-			
 			messageAndWait.setWait(true);
 			int record = lru.LRUMissCD();//make sure this works with static
-			messageAndWait.setMessage(destination + " " + writeBufferInstruction[record][0] + "" + writeBufferInstruction[record][1] + "0");
+			String newAddress = String.format("%04d",writeBufferInstruction[record][0]*64 + writeBufferInstruction[record][1]);
+			messageAndWait.setMessage(destination + " " + newAddress + " 0");
 			messageAndWait.block.setBlock(writeBufferData[record].getBlock());
-			
 			if(destination == "SendToL2")//make sure this works when debugging
 			{
+				valid[record] = 1;
 				alq.enqueue(L1DtoL1C, messageAndWait);
+//				lru.LRU[record] = -1;
+//				valid[record] = -1;
 			}else if(destination == "SendToDRAM")
 			{
-				messageAndWait.setMessage("MutualInclusionCheckDirty " + writeBufferInstruction[record][0] + "" + writeBufferInstruction[record][1] + "0");
+				messageAndWait.setMessage("MutualInclusionCheckDirty " + newAddress + " 0");
 				sendRequestToDestination(messageAndWait, L2toL1C, alq);
+//				lru.LRU[record] = -1;
+//				valid[record] = -1;
 //				for(int i = 0; i < 8; i++)
 //				{
 //					QueueObjectBus bus = new QueueObjectBus();
@@ -58,49 +60,25 @@ public class WriteBuffersForL1AndL2 {
 //				}
 				
 			}
-				
-			
-			
+
 			writeBufferInstruction[record][0] = Tag; 
-			writeBufferInstruction[record][1] = Index;
-			
-			writeBufferData[record] = data;
-			
-			
-			
+			writeBufferInstruction[record][1] = Index;			
+			writeBufferData[record].setBlock(data.getBlock());
+			writeBufferData[record].setAddress(data.getAddress());
+
 		}else {
 			
 			int record = lru.LRUMissI();
 			writeBufferInstruction[record][0] = Tag; 
 			writeBufferInstruction[record][1] = Index;
 			valid[record] = 1;
-			writeBufferData[record] = data;
+			writeBufferData[record].setBlock(data.getBlock());
+			writeBufferData[record].setAddress(data.getAddress());
+			System.out.println("Set Write Buffer Success");
 		}
 	}
 	
-//	public void setWriteBufferDirectly(int Tag, int Index, LineObject data)
-//	{
-//		if(isFull())
-//		{
-//			
-//			int record = lru.LRUMissCD();//make sure this works with static
-//
-//			writeBufferInstruction[record][0] = Tag; 
-//			writeBufferInstruction[record][1] = Index;
-//			
-//			writeBufferData[record] = data;
-//
-//		}else {
-//			
-//			int record = lru.LRUMissI();
-//			
-//			writeBufferInstruction[record][0] = Tag; 
-//			writeBufferInstruction[record][1] = Index;
-//			
-//			writeBufferData[record] = data;
-//		}
-//	}
-	
+
 	public boolean checkValue(int Tag, int Index)
 	{
 		boolean exists = false;
@@ -126,9 +104,10 @@ public class WriteBuffersForL1AndL2 {
 				writeBufferInstruction[i][0] = -1;
 				writeBufferInstruction[i][1] = -1;
 				valid[i] = -1;
-				lru.LRUMissI();
+				lru.LRU[i] = -1;
 			}
 		}
+		System.out.println("Read from Write Buffer Success");
 		return output;
 	}
 	

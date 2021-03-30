@@ -28,8 +28,11 @@ public class LineObject {
 		return block[byteNumber];
 	}
 
-	public void setBlock(char[] bytes) {
-		this.block = block;
+	public void setBlock(char[] block) {
+		for(int i = 0; i < block.length; i++)
+		{
+			this.block[i] = block[i];
+		}
 	}
 
 	public void setBlockValue(char input, int value) {

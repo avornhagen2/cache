@@ -31,16 +31,13 @@ public class VictimCacheForL1 extends Cache {
 	{
 		if(isFull())
 		{
-			
 			int record = lru.LRUMissCD();//make sure this works with static
 			
 			victimInstruction[record][0] = Tag; 
 			victimInstruction[record][1] = Index;
-			
-			victimData[record] = data;
-			
-			
-			
+			victimData[record].setBlock(data.getBlock());
+			victimData[record].setAddress(data.getAddress());
+
 		}else {
 			
 			int record = lru.LRUMissI();
@@ -48,8 +45,10 @@ public class VictimCacheForL1 extends Cache {
 			victimInstruction[record][0] = Tag; 
 			victimInstruction[record][1] = Index;
 			valid[record] = 1;
-			victimData[record] = data;
+			victimData[record].setBlock(data.getBlock());
+			victimData[record].setAddress(data.getAddress());
 		}
+		System.out.println("Set Victim Cache Success");
 	}
 	
 	public boolean checkValue(int Tag, int Index)
@@ -91,9 +90,10 @@ public class VictimCacheForL1 extends Cache {
 				victimInstruction[i][0] = -1;
 				victimInstruction[i][1] = -1;
 				valid[i] = -1;
-				lru.LRUMissI();
+				lru.LRU[i] = -1;
 			}
 		}
+		System.out.println("Read from Victim Cache Success");
 		return output;
 	}
 	

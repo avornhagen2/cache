@@ -8,7 +8,7 @@ public class L1Data extends Cache{
 	//L1CacheController L1C = new L1CacheController();
 	private LineObject[][] L1D = new LineObject[NUMBER_SETS][SET_SIZE];
 	ArrayListQueue alq;
-	public WriteBuffersForL1AndL2 writeBuffer = new WriteBuffersForL1AndL2(alq);
+	public WriteBuffersForL1AndL2 writeBuffer;
 	public VictimCacheForL1 victim = new VictimCacheForL1();
 	final private static int L1CtoL1D = 1;
 	final private static int L1DtoL1C = 6;
@@ -22,6 +22,7 @@ public class L1Data extends Cache{
 		this.alq = alq;
 		this.busyAddresses = busyAddresses;
 		this.busyCheckL1 = busyCheckL1;
+		this.writeBuffer = new WriteBuffersForL1AndL2(alq);
 	}
 	
 	public void run()
@@ -57,10 +58,10 @@ public class L1Data extends Cache{
 				
 				for(int i = Offset; i < byteSize + Offset;i++)
 				{
-					//output = output + L1D[Index][messageAndWait.getTransactionL1()].getBlockValue(i);
 					qoc.block.setBlockValue(L1D[Index][messageAndWait.getTransactionL1()].getBlockValue(i), i - Offset);
+					//maybe have to set address here
 				}
-				
+
 				qoc.setMessage(messageAndWait.getMessage());
 				alq.enqueue(L1DtoL1C, qoc);
 				busyAddresses.remove(busyAddresses.indexOf(Address));
@@ -75,16 +76,16 @@ public class L1Data extends Cache{
 					{
 						//output = "Write Success";
 						L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(((QueueObjectChild) messageAndWait).block.getBlockValue(i-Offset), i);
-						
 					}
+					L1D[Index][messageAndWait.getTransactionL1()].setAddress(Address);
 				}else {
 					char[] data = split[3].toCharArray(); 
 					for(int i = Offset; i < Offset + byteSize; i++)
 					{
 						//output = "Write Success";
 						L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(data[i - Offset], i);
-						
 					}
+					L1D[Index][messageAndWait.getTransactionL1()].setAddress(Address);
 				}
 				
 				busyAddresses.remove(busyAddresses.indexOf(Address));
@@ -108,7 +109,7 @@ public class L1Data extends Cache{
 					//output = "Write Success";
 					L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(((QueueObjectChild)messageAndWait).block.getBlockValue(i-Offset), i);
 				}
-				
+				L1D[Index][messageAndWait.getTransactionL1()].setAddress(Address);
 				busyAddresses.remove(busyAddresses.indexOf(Address));
 				busyCheckL1[Index][messageAndWait.getTransactionL1()] = false;
 				//System.out.println("Write to L1D Success");
@@ -122,8 +123,9 @@ public class L1Data extends Cache{
 				{
 					//output = "Write Success";
 					L1D[Index][messageAndWait.getTransactionL1()].setBlockValue(((QueueObjectChild)messageAndWait).block.getBlockValue(i-Offset), i);
+					
 				}
-				
+				L1D[Index][messageAndWait.getTransactionL1()].setAddress(Address);
 				//alq.enqueue(L1DtoL1C, messageAndWait);//???
 				//System.out.println("Write to L1D Success");
 				//we are not enqueueing on a write

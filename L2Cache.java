@@ -27,94 +27,108 @@ public class L2Cache extends Cache {
 	{
 		if(!alq.isSingleQueueEmpty(L1CtoL2) && alq.getHeadOfQueueWait(L1CtoL2) == false)
 		{
-			InstructionsL2.add(alq.dequeue(L1CtoL2));
+			QueueObject instructionObject = alq.dequeue(L1CtoL2);
+			instructionObject.setWait(false);
+			InstructionsL2.add(instructionObject);
+		}
 			
-			if(!InstructionsL2.isEmpty())//CPU to L1C
+		if(!InstructionsL2.isEmpty())//CPU to L1C
+		{
+			boolean flag = true;
+			int i = 0;
+			while(flag && i < 8)
 			{
-				boolean flag = true;
-				int i = 0;
-				while(flag && i < 8)
+				if(InstructionsL2.size()-1 < i)
 				{
-					if(InstructionsL2.size()-1 < i)
+					flag = false;
+				}else {
+					QueueObject messageAndWait = InstructionsL2.get(i);
+					String input = messageAndWait.getMessage();
+					messageAndWait.setWait(true);
+
+					String[] split = input.trim().split(" ");
+					int Address = Integer.parseInt(split[1].substring(0, 4));
+					int Tag = Address / setSize;
+					int Index = Address % setSize; 
+
+					if(!busyCheckL2[Index])
 					{
-						flag = false;
-					}else {
-						QueueObject messageAndWait = InstructionsL2.get(i);
-						String input = messageAndWait.getMessage();
+						busyCheckL2[Index] = true;
+						InstructionsL2.remove(i);
 						messageAndWait.setWait(true);
-						
-						String[] split = input.trim().split(" ");
-						int Address = Integer.parseInt(split[1].substring(0, 4));
-						int Tag = Address / setSize;
-						int Index = Address % setSize; 
-						if(!busyCheckL2[Index])
+						flag = false;
+
+					
+
+						if(split[0].contentEquals("SendToL2"))
 						{
-							busyCheckL2[Index] = true;
-							InstructionsL2.remove(i);
-							messageAndWait.setWait(true);
-							flag = false;
-							
-							L2C[Index].setValid(true);
-							
-							if(split[0].contentEquals("SendToL2"))
+							//Index % 512;
+							//if(L2[Index].getAddress() == Address )
+							//{
+								L2[Index].setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
+								L2[Index].setAddress(Address);
+								busyCheckL2[Index] = false;
+							//}else
+							//{
+								//System.out.println("Error: L2 Cache write buffer");
+							//}
+						}else if(split[0].equals("CPURead")  || split[0].equals("CPUWrite"))
+						{
+							States currentState = check_StateL2(Tag, Index);
+
+							if(writeBufferL2.checkValue(Tag,Index))
 							{
-								 //Index % 512;
-								if(L2[Index].getAddress() == Address )
-								{
-									L2[Index].setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
-								}else
-								{
-									System.out.println("Error: L2 Cache write buffer");
-								}
-							}else if(split[0].equals("CPURead")  || split[0].equals("CPUWrite"))
-							{
-								States currentState = check_StateL2(Index, Tag);
-								
-								if(writeBufferL2.checkValue(Tag,Index))
-								{
-									writeToL2FromWriteBuffer(Tag, Index, currentState, writeBufferL2.getWriteBufferValue(Tag,Index));
-									currentState = check_StateL2(Index, Tag);
-								}
-								
-								if(currentState == States.HIT)
-								{
-									((QueueObjectChild)messageAndWait).block.setBlock(L2[Index].getBlock());
-									alq.enqueue(L2toL1C, messageAndWait);//on a hit we enqueue to L1D
-								}else if(currentState == States.MISSI)
-								{
-									sendRequestToDRAM(input,messageAndWait.getTransactionL1());
-									//alq.enqueue(L2toDRAM, messageAndWait);//on a miss we enqueue to DRAM
-								}else if(currentState == States.MISSD)
-								{
-									QueueObjectBus writeBufferObject = new QueueObjectBus();
-									writeBufferL2.setWriteBufferValue(Tag, Index, L2[Index], "SendToDRAM");
-									sendRequestToDRAM(input,messageAndWait.getTransactionL1());
-								}else if(currentState == States.MISSC)
-								{
-									QueueObjectChild head = new QueueObjectChild(32);
-									int replaceAddress = L2C[Index].getIndex() + (L2C[Index].getTag() * setSize);
-									head.setMessage("MutualInclusionCheckClean " + replaceAddress + "00 0");
-									head.block.setBlock(L2[Index].getBlock());
-									sendRequestToDestination(head,L2toL1C,alq);
-									sendRequestToDRAM(input,messageAndWait.getTransactionL1());//on a miss we enqueue to DRAM
-								}
-							}else if(split[0].contentEquals("MutualInclusionChecktoDRAM"))
-							{
-								LineObject data = new LineObject(32);
-								data.setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
-								data.setAddress(Address);
-								sendDataToDRAM(data,((QueueObjectChild)messageAndWait));
+								writeToL2FromWriteBuffer(Tag, Index, currentState, writeBufferL2.getWriteBufferValue(Tag,Index));
+								currentState = check_StateL2(Tag, Index);
 							}
+
+							if(currentState == States.HIT)
+							{
+								QueueObjectChild qoc = new QueueObjectChild(32);
+								qoc.setMessage(messageAndWait.getMessage());
+								qoc.setTransactionL1(messageAndWait.getTransactionL1());
+								qoc.setWait(messageAndWait.getWait());
+								qoc.block.setBlock(L2[Index].getBlock());
+								alq.enqueue(L2toL1C, qoc);//on a hit we enqueue to L1D
+								busyCheckL2[Index] = false;
+							}else if(currentState == States.MISSI)
+							{
+								sendRequestToDRAM(input,messageAndWait.getTransactionL1());
+								//alq.enqueue(L2toDRAM, messageAndWait);//on a miss we enqueue to DRAM
+							}else if(currentState == States.MISSD)
+							{
+								QueueObjectBus writeBufferObject = new QueueObjectBus();
+								writeBufferL2.setWriteBufferValue(Tag, Index, L2[Index], "SendToDRAM");
+								sendRequestToDRAM(input,messageAndWait.getTransactionL1());
+							}else if(currentState == States.MISSC)
+							{
+								
+								QueueObjectChild head = new QueueObjectChild(32);
+								String replaceAddress = String.format("%04d",L2C[Index].getIndex() + (L2C[Index].getTag() * setSize));
+								head.setMessage("MutualInclusionCheckClean " + replaceAddress + "00 0");
+								head.block.setBlock(L2[Index].getBlock());
+								sendRequestToDestination(head,L2toL1C,alq);
+								sendRequestToDRAM(input,messageAndWait.getTransactionL1());//on a miss we enqueue to DRAM
+								L2C[Index].setValid(false);
+							}
+						}else if(split[0].contentEquals("MutualInclusionChecktoDRAM"))
+						{
+							LineObject data = new LineObject(32);
+							data.setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
+							data.setAddress(Address);
+							sendDataToDRAM(data,((QueueObjectChild)messageAndWait));
 						}
 						
-						
 					}
-					i++;
+
+
 				}
+				i++;
 			}
-			
-			
 		}
+			
+			
+		
 		
 		//CPUWrite TAGindexOFFSET byteSize input.input.input 
 
@@ -133,12 +147,18 @@ public class L2Cache extends Cache {
 			
 			busSwitchCase(Index,busNumber,messageAndWait.getBusData());
 			
+			
 			if(busNumber == 7)
 			{
+				L2[Index].setAddress(Address);
+				L2C[Index].setValid(true);
+				L2C[Index].setTag(Tag);
+				L2C[Index].setIndex(Index);
 				QueueObjectChild finishedBus = new QueueObjectChild(32);
 				finishedBus.setMessage(messageAndWait.getMessage());
 				finishedBus.setTransactionL1(messageAndWait.getTransactionL1());
 				finishedBus.block.setBlock(L2[Index].getBlock());
+				busyCheckL2[Index] = false;
 				alq.enqueue(L2toL1C, finishedBus);
 			}
 			
@@ -155,43 +175,36 @@ public class L2Cache extends Cache {
 		{
 			L2[Index].setBlockValue(busData[i - offset], i);
 		}
+		busyCheckL2[Index] = false;
 	}
 	
 	public void busSwitchCase(int Index, int busNumber, char[] busData)
 	{
 		switch(busNumber)
 		{
-			case 0 ://COME BACK AND CHANGE THIS TO BUSDATA
-				char[] c = {'r','n','w','p'};
-				writeBusToL2(Index,0,c);
+			case 0 :
+				writeBusToL2(Index,0,busData);
 				break;
 			case 1 :
-				char[] v = {'r','n','w','p'};
-				writeBusToL2(Index,4,v);
+				writeBusToL2(Index,4,busData);
 				break;
 			case 2 :
-				char[] b = {'r','n','w','p'};
-				writeBusToL2(Index,8,b);
+				writeBusToL2(Index,8,busData);
 				break;
 			case 3 :
-				char[] n = {'r','n','w','p'};
-				writeBusToL2(Index,12,n);
+				writeBusToL2(Index,12,busData);
 				break;
 			case 4 :
-				char[] m = {'r','n','w','p'};
-				writeBusToL2(Index,16,m);
+				writeBusToL2(Index,16,busData);
 				break;
 			case 5 :
-				char[] a = {'r','n','w','p'};
-				writeBusToL2(Index,20,a);
+				writeBusToL2(Index,20,busData);
 				break;
 			case 6 :
-				char[] s = {'r','n','w','p'};
-				writeBusToL2(Index,24,s);
+				writeBusToL2(Index,24,busData);
 				break;
 			case 7 :
-				char[] d = {'r','n','w','p'};
-				writeBusToL2(Index,28,d);
+				writeBusToL2(Index,28,busData);
 				break;
 		}
 			
@@ -246,6 +259,7 @@ public class L2Cache extends Cache {
 			L2[Index] = data;
 			L2C[Index].setTag(Tag);
 			L2C[Index].setIndex(Index);
+			busyCheckL2[Index] = false;
 			//L2.getL1DLineObject(Index, transaction).setBlock(data.block);
 		}else if(currentState == States.MISSD)
 		{
@@ -253,6 +267,7 @@ public class L2Cache extends Cache {
 			L2[Index] = data;
 			L2C[Index].setTag(Tag);
 			L2C[Index].setIndex(Index);
+			busyCheckL2[Index] = false;
 		}
 	}
 	
@@ -291,7 +306,7 @@ public class L2Cache extends Cache {
 		for(int i = 0; i < setSize; i++)
 		{
 			LineObject temp = new LineObject(32);
-			ControllerObject temp2 = new ControllerObject(i, 0, false, true);
+			ControllerObject temp2 = new ControllerObject(0, i, false, true);
 			temp.populateLineObject();
 			L2C[i] = temp2;
 			L2[i] = temp;

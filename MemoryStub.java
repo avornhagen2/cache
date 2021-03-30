@@ -104,9 +104,15 @@ public class MemoryStub {
 		//LineObject[] temp = new LineObject[setSize];
 		for(int i = 0; i < setSize; i++)
 		{
+			
 			LineObject temp = new LineObject(32);
 			temp.populateLineObject();
 			DRAM[i] = temp;
+			if(i == 1)
+			{
+				temp.setBlockValue('a', 0);
+				DRAM[i] = temp;
+			}
 		}
 		
 	}
