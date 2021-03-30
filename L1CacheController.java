@@ -112,7 +112,8 @@ public class L1CacheController extends Cache
 				if(InstructionsL1.size()-1 < i)
 				{
 					flag = false;
-				}else {
+				}else{ 
+
 					message = InstructionsL1.get(i);
 					String[] splitInstructions = message.trim().split(" ");
 					Address = Integer.parseInt(splitInstructions[1].substring(0, 4));
@@ -215,6 +216,7 @@ public class L1CacheController extends Cache
 							alq.enqueue(L1CtoL2, messageAndWait);
 						}	
 					}
+					
 					i++;
 				}
 				
@@ -325,6 +327,8 @@ public class L1CacheController extends Cache
 				
 				for(int i = 0; i < 2; i++)
 				{
+					String newAddress = String.format("%04d",Address);
+					
 					if(writeBuffer.writeBufferInstruction[i][0] == Tag && writeBuffer.writeBufferInstruction[i][1] == Index)
 					{
 						inL1 = true;
@@ -332,7 +336,7 @@ public class L1CacheController extends Cache
 						if(!Arrays.equals(messageAndWait.block.getBlock(), writeBuffer.writeBufferData[i].getBlock()))
 						{
 							head.block.setBlock(writeBuffer.writeBufferData[i].getBlock());
-							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 							sendRequestToDestination(head, L1CtoL2, alq);
 						}
 						
@@ -343,7 +347,7 @@ public class L1CacheController extends Cache
 						if(!Arrays.equals(messageAndWait.block.getBlock(), victim.victimData[i].getBlock()))
 						{
 							head.block.setBlock(victim.victimData[i].getBlock());
-							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 							sendRequestToDestination(head, L1CtoL2, alq);
 						}
 					}
@@ -370,6 +374,7 @@ public class L1CacheController extends Cache
 			}else if(split[0].equals("MutualInclusionCheckDirty"))
 			{
 				QueueObjectChild head = new QueueObjectChild(32);
+				String newAddress = String.format("%04d",Address);
 				boolean inL1 = false;
 				
 				for(int i = 0; i < 2; i++)
@@ -381,7 +386,7 @@ public class L1CacheController extends Cache
 						if(!Arrays.equals(messageAndWait.block.getBlock(), writeBuffer.writeBufferData[i].getBlock()))
 						{
 							head.block.setBlock(writeBuffer.writeBufferData[i].getBlock());
-							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 							sendRequestToDestination(head, L1CtoL2, alq);
 						}
 						
@@ -392,7 +397,7 @@ public class L1CacheController extends Cache
 						if(!Arrays.equals(messageAndWait.block.getBlock(), victim.victimData[i].getBlock()))
 						{
 							head.block.setBlock(victim.victimData[i].getBlock());
-							head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+							head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 							sendRequestToDestination(head, L1CtoL2, alq);
 						}
 					}
@@ -413,7 +418,7 @@ public class L1CacheController extends Cache
 				
 				if(inL1 == false)
 				{
-					head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+					head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 					head.block.setBlock(messageAndWait.block.getBlock());
 					sendRequestToDestination(head, L1CtoL2, alq);
 				}

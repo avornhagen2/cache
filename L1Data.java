@@ -39,6 +39,7 @@ public class L1Data extends Cache{
 			int Address = 0;
 			int Offset = 0;
 			
+			
 			if(split[0].equals("VictimCache") || split[0].equals("WriteBuffer"))
 			{
 				Address = Integer.parseInt(split[1].substring(0, 4));
@@ -47,7 +48,7 @@ public class L1Data extends Cache{
 				Offset = Integer.parseInt(split[1].substring(4,6));
 			}
 			
-			
+			String newAddress = String.format("%04d",Address);
 			int Tag = Address / NUMBER_SETS;
 			int Index = Address % NUMBER_SETS; 
 			int byteSize = Integer.parseInt(split[2]);
@@ -137,14 +138,14 @@ public class L1Data extends Cache{
 				{
 					QueueObjectChild head = new QueueObjectChild(32);
 					head.block.setBlock(L1D[Index][messageAndWait.getTransactionL1()].getBlock());
-					head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+					head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 					sendRequestToDestination(head, L1DtoL1C, alq);
 				}
 			}else if(operation.equals("MutualInclusionCheckDirty"))
 			{
 				QueueObjectChild head = new QueueObjectChild(32);
 				head.block.setBlock(L1D[Index][messageAndWait.getTransactionL1()].getBlock());
-				head.setMessage("MutualInclusionChecktoDRAM " + Address + "00 0");
+				head.setMessage("MutualInclusionChecktoDRAM " + newAddress + "00 0");
 				sendRequestToDestination(head, L1DtoL1C, alq);
 			}
 		}

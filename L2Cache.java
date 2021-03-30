@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Queue;
 
 public class L2Cache extends Cache {
@@ -12,7 +13,7 @@ public class L2Cache extends Cache {
 	final private static int DRAMtoL2 = 4;
 	LineObject[] L2 = new LineObject[setSize];
 	ControllerObject[] L2C = new ControllerObject[setSize];
-	WriteBuffersForL1AndL2 writeBufferL2 = new WriteBuffersForL1AndL2(alq);
+	WriteBuffersForL1AndL2 writeBufferL2;
 	boolean mutualInclusion;
 	boolean[] busyCheckL2 = new boolean[setSize];
 	ArrayList<QueueObject> InstructionsL2 = new ArrayList<QueueObject>();
@@ -21,6 +22,7 @@ public class L2Cache extends Cache {
 	{
 		this.alq = alq;
 		this.mutualInclusion = mutualInclusion;
+		this.writeBufferL2  = new WriteBuffersForL1AndL2(alq);
 	}
 	
 	public void run()
@@ -32,7 +34,7 @@ public class L2Cache extends Cache {
 			InstructionsL2.add(instructionObject);
 		}
 			
-		if(!InstructionsL2.isEmpty())//CPU to L1C
+		if(!InstructionsL2.isEmpty())
 		{
 			boolean flag = true;
 			int i = 0;
@@ -62,16 +64,16 @@ public class L2Cache extends Cache {
 
 						if(split[0].contentEquals("SendToL2"))
 						{
-							//Index % 512;
-							//if(L2[Index].getAddress() == Address )
-							//{
-								L2[Index].setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
-								L2[Index].setAddress(Address);
-								busyCheckL2[Index] = false;
-							//}else
-							//{
-								//System.out.println("Error: L2 Cache write buffer");
-							//}
+							if(!Arrays.equals(L2[Index].getBlock(), ((QueueObjectChild) messageAndWait).block.getBlock()))
+							{
+								L2C[Index].setClean(false);
+							}else {
+								L2C[Index].setClean(true);
+							}
+							L2[Index].setBlock(((QueueObjectChild)messageAndWait).block.getBlock());
+							L2[Index].setAddress(Address);
+							busyCheckL2[Index] = false;
+
 						}else if(split[0].equals("CPURead")  || split[0].equals("CPUWrite"))
 						{
 							States currentState = check_StateL2(Tag, Index);
@@ -98,7 +100,7 @@ public class L2Cache extends Cache {
 							}else if(currentState == States.MISSD)
 							{
 								QueueObjectBus writeBufferObject = new QueueObjectBus();
-								writeBufferL2.setWriteBufferValue(Tag, Index, L2[Index], "SendToDRAM");
+								writeBufferL2.setWriteBufferValue(L2[Index].getTag(setSize), Index, L2[Index], "SendToDRAM");
 								sendRequestToDRAM(input,messageAndWait.getTransactionL1());
 							}else if(currentState == States.MISSC)
 							{
@@ -154,6 +156,7 @@ public class L2Cache extends Cache {
 				L2C[Index].setValid(true);
 				L2C[Index].setTag(Tag);
 				L2C[Index].setIndex(Index);
+				L2C[Index].setClean(true);
 				QueueObjectChild finishedBus = new QueueObjectChild(32);
 				finishedBus.setMessage(messageAndWait.getMessage());
 				finishedBus.setTransactionL1(messageAndWait.getTransactionL1());
@@ -254,8 +257,20 @@ public class L2Cache extends Cache {
 		if(currentState == States.HIT)
 		{
 			//do nothing
-		}else if(currentState == States.MISSI || currentState == States.MISSC)
+		}else if(currentState == States.MISSI)
 		{
+			L2[Index] = data;
+			L2C[Index].setTag(Tag);
+			L2C[Index].setIndex(Index);
+			busyCheckL2[Index] = false;
+		}else if(currentState == States.MISSC)
+		{
+			QueueObjectChild head = new QueueObjectChild(32);
+			String newAddress = String.format("%04d",L2[Index].getAddress());
+			head.block.setBlock(L2[Index].getBlock());
+			head.setMessage("MutualInclusionCheckClean " + newAddress + "00 0");
+			sendRequestToDestination(head, L2toL1C, alq);
+			
 			L2[Index] = data;
 			L2C[Index].setTag(Tag);
 			L2C[Index].setIndex(Index);

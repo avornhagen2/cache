@@ -96,7 +96,7 @@ public class CacheManager {
 				
 				
 				
-				if(time == 100)
+				if(time == 15)
 				{
 					int i = 0;
 					

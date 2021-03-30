@@ -34,9 +34,10 @@ public class MemoryStub {
 			int Address = Integer.parseInt(split[1].substring(0, 4));
 			int busNumber = messageAndWait.getBusNumber();
 
-			if(split[0].equals("SendToDRAM"))
+			if(split[0].equals("SendToDRAM") || split[0].equals("MutualInclusionChecktoDRAM"))
 			{
 				busSwitchCase(Address,busNumber,messageAndWait.getBusData());
+				DRAM[Address].setAddress(Address);
 			}else if(split[0].equals("CPURead") || split[0].equals("CPUWrite"))
 			{
 				writeBusToL2(Address,busNumber,messageAndWait);
